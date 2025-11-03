@@ -1,14 +1,19 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace WebAppSuporteIA.Models
+namespace HelpFast_Pim.Models
 {
+    [Table("Faqs", Schema = "dbo")]
     public class Faq
     {
         [Key]
         public int Id { get; set; }
-        [Required]
-        public string Pergunta { get; set; } = string.Empty;
-        [Required]
-        public string Resposta { get; set; } = string.Empty;
+
+        [MaxLength(250)]
+        public string? Pergunta { get; set; }
+
+        public string? Resposta { get; set; }
+
+        public bool Ativo { get; set; }
     }
 }

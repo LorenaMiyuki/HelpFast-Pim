@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - HelpFast</title>
+    <link rel="stylesheet" href="~/css/site.css" />
+    <style>
+        /* fundo e tipografia */
+        html, body {
+            height: 100%;
+            margin: 0;
+            background-color: #161D28;
+            color: #e9eef2;
+            font-family: "Inter", "Segoe UI", Roboto, Arial, sans-serif;
+            -webkit-font-smoothing:antialiased;
+        }
+
+        .app-root { min-height:100vh; display:flex; flex-direction:column; }
+        .app-content { flex:1 0 auto; display:flex; align-items:center; justify-content:center; padding:48px 20px; box-sizing:border-box; }
+
+        /* cartão */
+        .card {
+            width: 360px;
+            max-width:96%;
+            border-radius:22px;
+            padding:30px;
+            box-sizing:border-box;
+            background: linear-gradient(180deg, rgba(20,30,36,0.92), rgba(15,22,28,0.92));
+            border: 1px solid rgba(255,255,255,0.03);
+            box-shadow: 0 28px 60px rgba(2,8,12,0.65), inset 0 2px 12px rgba(255,255,255,0.02);
+            color: #e9eef2;
+        }
+
+        .card-inner { padding:0; background:transparent; border-radius:18px; }
+
+        .logo-wrap { text-align:center; margin-bottom:18px; }
+        .logo-wrap img { max-width:150px; display:inline-block; }
+
+        /* labels e campos (INPUTS ESCUROS conforme imagem 2) */
+        .field { margin-bottom:14px; }
+        .field label { display:block; font-size:13px; color:#9aa6af; margin-bottom:8px; }
+
+        .input-wrap { position:relative; }
+        .input-wrap input, .input-wrap textarea {
+            width:100%;
+            padding:12px 56px 12px 16px; /* espaço para ícone à direita */
+            border-radius:10px;
+            border:1px solid rgba(255,255,255,0.03);
+            background: #243033; /* escuro como na imagem 2 */
+            color: #e9eef2;
+            font-size:14px;
+            box-sizing:border-box;
+            outline:none;
+            transition: box-shadow .12s ease, border-color .12s ease;
+        }
+        .input-wrap textarea { min-height:120px; padding-top:12px; resize:vertical; }
+        .input-wrap input::placeholder, .input-wrap textarea::placeholder { color: rgba(233,238,242,0.35); }
+
+        /* icon bubble: caixa escura discreta com o ícone cinza claro */
+        .icon {
+            position:absolute;
+            right:10px;
+            top:50%;
+            transform:translateY(-50%);
+            width:40px;
+            height:40px;
+            background: rgba(255,255,255,0.03);
+            border-radius:8px;
+            border:1px solid rgba(255,255,255,0.02);
+            display:inline-block;
+            background-repeat:no-repeat;
+            background-position:center;
+            opacity:0.98;
+            box-shadow: inset 0 1px 0 rgba(255,255,255,0.01);
+        }
+
+        /* ícones específicos (usar SVGs no /images) */
+        .icon.mail { background-image: url('/images/icon-mail.svg'); background-size:16px 16px; filter:brightness(0.85) saturate(0.2); }
+        .icon.lock { background-image: url('/images/icon-lock.svg'); background-size:16px 16px; filter:brightness(0.85) saturate(0.2); }
+        .icon.user { background-image: url('/images/icon-user.svg'); background-size:16px 16px; filter:brightness(0.85) saturate(0.2); }
+        .icon.phone { background-image: url('/images/icon-phone.svg'); background-size:16px 16px; filter:brightness(0.85) saturate(0.2); }
+
+        .field-error { color:#ffb3b3; font-size:12px; margin-top:8px; display:block; }
+
+        /* botões: brancos, borda sutil, altura consistente */
+        .actions { display:flex; flex-direction:column; gap:12px; margin-top:12px; align-items:stretch; }
+        .btn {
+            width:100%;
+            border-radius:12px;
+            font-weight:600;
+            text-decoration:none;
+            display:inline-flex;
+            align-items:center;
+            justify-content:center;
+            cursor:pointer;
+            box-sizing:border-box;
+            border:none;
+        }
+        .btn.primary {
+            height:48px;
+            background:#ffffff;
+            color:#101010;
+            font-size:16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.28);
+        }
+        /* botão secundário: branco menor — igual imagem 2 */
+        .btn.secondary {
+            height:44px;
+            background:#ffffff;
+            color:#101010;
+            font-size:14px;
+            border-radius:10px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.22);
+        }
+        .sep { text-align:center; color:#8f9ea3; font-weight:600; margin:6px 0; }
+
+        .form-errors { margin-top:10px; color:#ffb3b3; font-size:13px; text-align:left; }
+
+        .success-message {
+            background: rgba(46,125,50,0.12);
+            color: #dff0d8;
+            padding:10px;
+            border-radius:10px;
+            margin-bottom:12px;
+            border: 1px solid rgba(76,175,80,0.12);
+        }
+
+        /* responsivo */
+        @@media (max-width:420px) {
+            .card { width:92%; padding:20px; border-radius:18px; }
+            .logo-wrap img { max-width:120px; }
+            .icon { width:36px; height:36px; right:8px; }
+            .input-wrap input, .input-wrap textarea { padding-right:52px; height:44px; }
+            .btn.primary { height:46px; }
+            .btn.secondary { height:40px; font-size:13px; }
+        }
+    </style>
+
+    @RenderSection("Styles", required: false)
+</head>
+<body>
+    <div class="app-root">
+        <header>
+            <!-- optional header -->
+        </header>
+
+        <main class="app-content">
+            @RenderBody()
+        </main>
+
+        <footer>
+        </footer>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/js/site.js"></script>
+    @RenderSection("Scripts", required: false)
+</body>
+</html>

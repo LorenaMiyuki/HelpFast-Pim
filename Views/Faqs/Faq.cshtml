@@ -1,0 +1,128 @@
+@model IEnumerable<HelpFast_Pim.Models.Faq>
+@{
+	Layout = "~/Views/Shared/_Layout.cshtml";
+	ViewData["Title"] = "FAQ";
+}
+<style>
+	/* Estilos atualizados: modal branco, logo maior, respostas com transição */
+	.faq-page { display:flex; justify-content:center; padding:32px 0; }
+	.faq-card {
+		background:#232a30; border-radius:12px; padding:28px; width:760px; color:#fff; box-shadow:0 6px 0 rgba(0,0,0,0.3);
+	}
+	.faq-inner {
+		background:#4F678D; /* modal cor 4F678D */
+		border:3px solid rgba(47,177,255,0.12);
+		padding:28px; border-radius:12px; color:#fff;
+	}
+
+	/* logo mais visível */
+	.logo-wrap img { height:72px; display:block; margin:0 auto 12px; filter:brightness(1.05); }
+
+	.faq-title { text-align:center; font-size:36px; margin-bottom:22px; font-weight:300; color:#fff; }
+	.faq-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+
+	/* wrapper que contém pergunta + resposta com o mesmo fundo branco */
+	.faq-entry {
+		background:#ffffff;
+		border-radius:18px;
+		padding:8px;
+		color:#111;
+		transition:box-shadow .18s ease;
+	}
+	.faq-entry + .faq-entry { margin-top:0; } /* grid cuida do espaçamento */
+	.faq-entry:hover { box-shadow:0 6px 18px rgba(0,0,0,0.06); }
+
+	/* pergunta (linha superior) */
+	.faq-item {
+		background:transparent;
+		padding:12px 14px;
+		display:flex; align-items:center; justify-content:space-between;
+		cursor:pointer; transition:all .12s ease;
+	}
+	.faq-item .q-text { padding-right:12px; flex:1; font-size:15px; }
+	.faq-item .arrow { width:36px; height:36px; border-radius:50%; background:#f1f1f1; display:flex; align-items:center; justify-content:center; transition:transform .2s ease; color:#111; }
+
+	/* resposta inicialmente escondida; fica dentro do mesmo .faq-entry */
+	.faq-answer {
+		max-height:0; overflow:hidden; transition:max-height .26s ease, padding .18s ease;
+		margin-top:6px; padding:0 6px; font-size:14px; color:#111;
+	}
+	/* quando o wrapper está expandido mostra a resposta e gira a seta */
+	.faq-entry.expanded .faq-answer { max-height:800px; padding:8px 6px; }
+	.faq-entry.expanded .arrow { transform:rotate(180deg); }
+
+	.center-btn { display:flex; justify-content:center; margin-top:20px; }
+	.btn-primary-faq {
+		background:#fff; color:#000; padding:10px 38px; border-radius:10px; text-decoration:none; display:inline-block;
+	}
+	/* responsivo */
+	@@media (max-width:760px) {
+		.faq-card{ width:92%; }
+		.faq-grid{ grid-template-columns: 1fr; }
+		.logo-wrap img { height:60px; }
+	}
+</style>
+
+<div class="faq-page">
+	<div class="faq-card">
+		<div class="logo-wrap" style="text-align:center;margin-bottom:6px;">
+			<img src="/images/logoh.png" alt="HelpFast" />
+		</div>
+
+		<div class="faq-inner">
+			<div class="faq-title">FAQ:</div>
+
+			<div class="faq-grid">
+				@foreach (var f in Model)
+				{
+					<!-- pergunta + resposta no mesmo bloco branco -->
+					<div class="faq-entry" data-id="@f.Id">
+						<div class="faq-item" role="button" aria-expanded="false" tabindex="0">
+							<div class="q-text">@f.Pergunta</div>
+							<div class="arrow" aria-hidden="true">▾</div>
+						</div>
+						<div class="faq-answer">@Html.Raw(System.Net.WebUtility.HtmlEncode(f.Resposta ?? "").Replace("\n", "<br/>"))</div>
+					</div>
+				}
+			</div>
+		</div>
+
+		<div class="center-btn">
+			<!-- redireciona para a tela de Chat (pode receber id e assunto por query) -->
+			<a class="btn-primary-faq" href="@Url.Action("Chat","Chat")">Ir para o Chat</a>
+		</div>
+	</div>
+</div>
+
+@section Scripts {
+	<script>
+		// comportamento de expandir/colapsar aplicando a classe no wrapper (.faq-entry)
+		(function(){
+			document.querySelectorAll('.faq-entry').forEach(function(entry){
+				var item = entry.querySelector('.faq-item');
+				var answer = entry.querySelector('.faq-answer');
+
+				function openEntry(){
+					entry.classList.add('expanded');
+					item.setAttribute('aria-expanded','true');
+					// rola até a resposta para visualização
+					setTimeout(function(){ answer.scrollIntoView({ behavior:'smooth', block:'nearest' }); }, 180);
+				}
+				function closeEntry(){
+					entry.classList.remove('expanded');
+					item.setAttribute('aria-expanded','false');
+				}
+
+				item.addEventListener('click', function(){
+					if(entry.classList.contains('expanded')) closeEntry(); else openEntry();
+				});
+				item.addEventListener('keydown', function(e){
+					if(e.key === 'Enter' || e.key === ' '){
+						e.preventDefault();
+						item.click();
+					}
+				});
+			});
+		})();
+	</script>
+}

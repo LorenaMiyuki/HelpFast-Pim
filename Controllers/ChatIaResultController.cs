@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
-using WebAppSuporteIA.Models;
-using WebAppSuporteIA.Data;
-using WebAppSuporteIA.Services;
+using HelpFast_Pim.Models;
+using HelpFast_Pim.Data;
+using HelpFast_Pim.Services;
 using Microsoft.EntityFrameworkCore;
 
-namespace WebAppSuporteIA.Controllers
+namespace HelpFast_Pim.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]

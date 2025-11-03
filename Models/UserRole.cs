@@ -1,10 +1,10 @@
-namespace WebAppSuporteIA.Models;
+namespace HelpFast_Pim.Models;
 
 public enum UserRole
 {
-    Cliente = 1,
+    Cliente = 3,
     Tecnico = 2,
-    Admin = 3
+    Admin = 1
 }
 
 public static class UserRoleExtensions

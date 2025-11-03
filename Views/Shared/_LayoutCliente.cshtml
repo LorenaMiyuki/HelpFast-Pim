@@ -1,0 +1,21 @@
+@*
+  Layout variante mínimo para "Cliente".
+  Mantém head básico e RenderBody() para que Views/Chamados/MeusChamados.cshtml encontre o layout.
+*@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+	<meta charset="utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<title>@ViewData["Title"] - HelpFast</title>
+	<!-- incluir referências de CSS comuns se houver -->
+	<link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body>
+	@RenderBody()
+
+	<!-- scripts básicos -->
+	<script src="~/lib/jquery/dist/jquery.min.js"></script>
+	<script src="~/js/site.js"></script>
+</body>
+</html>

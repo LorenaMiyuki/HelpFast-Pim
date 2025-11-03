@@ -1,10 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
-using WebAppSuporteIA.Models;
-using WebAppSuporteIA.Data;
-using WebAppSuporteIA.Services;
+using HelpFast_Pim.Models;
+using HelpFast_Pim.Data;
+using HelpFast_Pim.Services;
 using Microsoft.EntityFrameworkCore;
 
-namespace WebAppSuporteIA.Controllers
+namespace HelpFast_Pim.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
@@ -20,7 +20,9 @@ namespace WebAppSuporteIA.Controllers
         public async Task<ActionResult<IEnumerable<Cargo>>> GetAll()
         {
             var lista = await _service.ListarTodosAsync();
-            return Ok(lista);
+            // Garantir ordem por Id (usa a ordem persistida do banco)
+            var ordenada = lista?.OrderBy(c => c.Id).ToList();
+            return Ok(ordenada);
         }
 
         [HttpGet("{id}")]
@@ -41,8 +43,13 @@ namespace WebAppSuporteIA.Controllers
         [HttpPut("{id}")]
         public async Task<IActionResult> Update(int id, [FromBody] Cargo cargo)
         {
+            // validar id no payload (se aplicável)
+            if (cargo == null) return BadRequest();
+            if (cargo.Id != 0 && cargo.Id != id) return BadRequest("Id no corpo diferente do id da rota.");
+
+            // tenta atualizar; o serviço deve retornar null se não encontrou
             var atualizado = await _service.AtualizarAsync(id, cargo);
-            if (atualizado == null) return BadRequest();
+            if (atualizado == null) return NotFound();
             return NoContent();
         }
 

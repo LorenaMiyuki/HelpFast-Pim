@@ -1,0 +1,53 @@
+@model HelpFast_Pim.Models.Chamado
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Solicitar Chamado";
+}
+<div class="card">
+    <div class="card-inner">
+        <div class="logo-wrap">
+            <img src="/images/logoh.png" alt="HelpFast" />
+        </div>
+
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            <div class="field">
+                <label>Assunto do chamado:</label>
+                <div class="input-wrap">
+                    <input asp-for="Assunto" placeholder="Escreva o assunto aqui:" />
+                </div>
+                <span asp-validation-for="Assunto" class="field-error"></span>
+            </div>
+
+            <div class="field">
+                <label>Motivo:</label>
+                <div class="input-wrap">
+                    <textarea asp-for="Motivo" placeholder="Descreva seu problema ou solicitação"></textarea>
+                </div>
+                <span asp-validation-for="Motivo" class="field-error"></span>
+            </div>
+
+            <div style="display:flex;gap:12px;justify-content:space-between;margin-top:8px;">
+                <a class="btn secondary small" href="~/Home/Index" style="width:48%;">Voltar ao menu</a>
+                <!-- envia o formulário ao servidor; controller irá criar e redirecionar para FAQ -->
+                <button type="submit" class="btn primary small" style="width:48%;">Abrir chamado</button>
+            </div>
+        </form>
+
+        <div class="form-errors">
+            @if (!ViewData.ModelState.IsValid)
+            {
+                <ul>
+                    @foreach (var e in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                    {
+                        <li>@e.ErrorMessage</li>
+                    }
+                </ul>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}

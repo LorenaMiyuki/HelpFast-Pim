@@ -2,17 +2,23 @@ using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace WebAppSuporteIA.Models
+namespace HelpFast_Pim.Models
 {
+    [Table("HistoricoChamados", Schema = "dbo")]
     public class HistoricoChamado
     {
         [Key]
         public int Id { get; set; }
+
         public int ChamadoId { get; set; }
-        [Required]
-        public string Acao { get; set; } = string.Empty;
+        [ForeignKey(nameof(ChamadoId))]
+        public Chamado? Chamado { get; set; }
+
+        [MaxLength(255)]
+        public string? Acao { get; set; }
+
         public DateTime Data { get; set; }
-        [ForeignKey("ChamadoId")]
-        public Chamado Chamado { get; set; } = null!;
+
+        public int UsuarioId { get; set; }
     }
 }

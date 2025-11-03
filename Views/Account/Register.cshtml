@@ -1,0 +1,162 @@
+@model global::HelpFast_Pim.Models.Usuario
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Cadastrar";
+}
+
+<div class="card">
+    <div class="card-inner">
+        <div class="logo-wrap">
+            <img src="/images/logoh.png" alt="HelpFast" />
+        </div>
+
+        <form asp-action="Register" method="post" novalidate>
+            <div class="field">
+                <label>Nome Completo</label>
+                <div class="input-wrap">
+                    <input asp-for="Nome" placeholder="Digite seu nome completo" />
+                    <!-- Ícone inline SVG garantido -->
+                    <span class="icon user" aria-hidden="true" role="img" title="Nome">
+                        <!-- Inline SVG (user icon) -->
+                        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">
+                            <path d="M12 12c2.761 0 5-2.239 5-5s-2.239-5-5-5-5 2.239-5 5 2.239 5 5 5zm0 2c-3.866 0-7 3.134-7 7 0 .552.448 1 1 1h12c.552 0 1-.448 1-1 0-3.866-3.134-7-7-7z"/>
+                        </svg>
+                    </span>
+                </div>
+                <span asp-validation-for="Nome" class="field-error"></span>
+            </div>
+
+            <div class="field">
+                <label>E-mail</label>
+                <div class="input-wrap">
+                    <input asp-for="Email" placeholder="Digite seu e-mail" />
+                    <span class="icon mail" aria-hidden="true" style="background-image:url('/images/icon-mail.svg'); background-size:16px 16px; background-position:center;"></span>
+                </div>
+                <span asp-validation-for="Email" class="field-error"></span>
+            </div>
+
+            <div class="field">
+                <label>Telefone</label>
+                <div class="input-wrap">
+                    <input asp-for="Telefone" placeholder="(XX)XXXXX-XXXX" />
+                    <span class="icon phone" aria-hidden="true" style="background-image:url('/images/icon-phone.svg'); background-size:16px 16px; background-position:center;"></span>
+                </div>
+                <span asp-validation-for="Telefone" class="field-error"></span>
+            </div>
+
+            <div class="field">
+                <label>Senha</label>
+                <div class="input-wrap">
+                    <input asp-for="Senha" type="password" placeholder="Digite sua senha" />
+                    <span class="icon lock" aria-hidden="true" style="background-image:url('/images/icon-lock.svg'); background-size:16px 16px; background-position:center;"></span>
+                </div>
+                <span asp-validation-for="Senha" class="field-error"></span>
+            </div>
+
+            <div class="field">
+                <label>Confirmar Senha</label>
+                <div class="input-wrap">
+                    <input name="ConfirmSenha" type="password" placeholder="Confirme sua senha" />
+                    <span class="icon lock" aria-hidden="true" style="background-image:url('/images/icon-lock.svg'); background-size:16px 16px; background-position:center;"></span>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button type="submit" class="btn primary">Cadastrar</button>
+                <div class="sep">OU</div>
+                <a class="btn secondary" href="@Url.Action("Login","Account")">Login</a>
+            </div>
+
+            <div class="form-errors">
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <ul>
+                        @foreach (var e in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                        {
+                            <li>@e.ErrorMessage</li>
+                        }
+                    </ul>
+                }
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @await Html.PartialAsync("_ValidationScriptsPartial")
+}
+
+@section Styles {
+    <style>
+        /* reuse visual from Login - compact form matching prototype */
+        html, body { height:100%; margin:0; font-family: "Inter", "Segoe UI", Roboto, Arial, sans-serif; background:#0f1720; color:#e9eef2; -webkit-font-smoothing:antialiased; }
+        .page-wrap { min-height:100vh; display:flex; align-items:center; justify-content:center; padding:24px; box-sizing:border-box; }
+
+        .card { width:420px; max-width:96%; border-radius:20px; background: linear-gradient(180deg, rgba(29,42,46,0.95), rgba(23,32,36,0.95)); box-shadow: 0 18px 40px rgba(2,8,12,0.6); padding:20px 22px; box-sizing:border-box; }
+
+        .card-top { display:flex; justify-content:center; margin-bottom:8px; align-items:center; }
+        .logo-wrap img { display:block; margin:0 auto; max-width:220px; max-height:120px; object-fit:contain; }
+
+        .card-body { padding-top:6px; }
+        .field { margin-bottom:10px; }
+        .field label { display:block; font-size:12px; color:#92a0a6; margin-bottom:6px; }
+        .input-wrap { position:relative; }
+        .input-wrap input {
+            width:100%;
+            padding:12px 48px 12px 14px;
+            border-radius:10px;
+            border:1px solid rgba(255,255,255,0.04);
+            background:#243033;
+            color:#e9eef2;
+            font-size:14px;
+            box-sizing:border-box;
+            outline:none;
+        }
+        .input-wrap input::placeholder { color:#7f9096; }
+
+        .icon {
+            position:absolute;
+            right:10px;
+            top:50%;
+            transform:translateY(-50%);
+            width:34px;
+            height:34px;
+            background: rgba(255,255,255,0.03);
+            border-radius:8px;
+            display:inline-block;
+            background-repeat:no-repeat;
+            background-position:center;
+            opacity:0.95;
+        }
+        .icon.mail { background-image: url('/images/icon-mail.svg'); background-size:16px 16px; }
+        .icon.lock { background-image: url('/images/icon-lock.svg'); background-size:16px 16px; }
+        .icon.user { /* removemos background-image usage */ background-image: none; background-color: rgba(255,255,255,0.03); }
+        .icon svg {
+            width: 18px;
+            height: 18px;
+            display: block;
+            margin: 0 auto;
+            fill: rgba(233,238,242,0.6); /* tom cinza mais forte no ícone */
+            filter: none;
+        }
+
+        /* Ajuste para garantir posição/encaixe do svg dentro da bolha */
+        .input-wrap .icon { width:40px; height:40px; right:10px; top:50%; transform:translateY(-50%); border-radius:8px; display:flex; align-items:center; justify-content:center; }
+        .input-wrap .icon img { display:none; } /* caso existam imgs anteriores */
+
+        .actions { display:flex; flex-direction:column; align-items:center; gap:10px; margin-top:8px; }
+        .btn { width:100%; height:48px; border-radius:10px; font-size:16px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; text-decoration:none; }
+        .btn.primary { background:#ffffff; color:#0b0b0b; border:none; box-shadow: 0 6px 18px rgba(0,0,0,0.25); }
+        .btn.secondary { background:#ffffff; color:#0b0b0b; border:none; box-shadow: 0 6px 18px rgba(0,0,0,0.18); }
+        .sep { color:#8f9ea3; font-weight:600; margin:2px 0; text-align:center; }
+
+        .field-error { color:#ffb3b3; font-size:12px; margin-top:6px; display:block; }
+        .form-errors { margin-top:8px; color:#ffb3b3; font-size:13px; width:100%; text-align:left; }
+
+        @@media (max-width:480px) {
+            .card { width:92%; padding:16px; border-radius:16px; }
+            .logo-wrap img { max-width:180px; max-height:90px; }
+            .btn { height:46px; font-size:15px; }
+        }
+    </style>
+}

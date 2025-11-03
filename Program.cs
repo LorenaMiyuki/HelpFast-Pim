@@ -1,25 +1,75 @@
-var builder = WebApplication.CreateBuilder(args);
+using Microsoft.AspNetCore.Builder;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Configuration;
+using HelpFast_Pim.Data;
+using HelpFast_Pim.Services;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using System;
+using System.Threading.Tasks;
+using Microsoft.Net.Http.Headers;
 
-// Add services to the container.
-
-builder.Services.AddControllers();
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
-
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
+namespace HelpFast_Pim
 {
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    public class Program
+    {
+        public static async Task Main(string[] args)
+        {
+            var builder = WebApplication.CreateBuilder(args);
+
+            // Configuration and services
+            builder.Services.AddControllersWithViews();
+            builder.Services.AddHttpClient();
+
+            // register DbContext (uses DefaultConnection from appsettings.json)
+            // Adicionado EnableRetryOnFailure e CommandTimeout para resiliência contra falhas transitórias do Azure SQL
+            builder.Services.AddDbContext<AppDbContext>(options =>
+                options.UseSqlServer(
+                    builder.Configuration.GetConnectionString("DefaultConnection"),
+                    sqlOptions =>
+                    {
+                        sqlOptions.EnableRetryOnFailure(
+                            maxRetryCount: 5,
+                            maxRetryDelay: TimeSpan.FromSeconds(10),
+                            errorNumbersToAdd: null);
+                        sqlOptions.CommandTimeout(60);
+                    }));
+
+            // registrar serviço de usuário (garante que o tipo seja encontrado)
+            builder.Services.AddScoped<IUsuarioService, UsuarioService>();
+
+            // Authentication - cookie
+            builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+                .AddCookie(options =>
+                {
+                    options.LoginPath = "/Account/Login";
+                    options.ExpireTimeSpan = TimeSpan.FromDays(7);
+                });
+
+            var app = builder.Build();
+
+            // middleware
+            if (!app.Environment.IsDevelopment())
+            {
+                app.UseExceptionHandler("/Home/Error");
+                app.UseHsts();
+            }
+
+            app.UseHttpsRedirection();
+            app.UseStaticFiles();
+
+            app.UseRouting();
+
+            app.UseAuthentication();
+            app.UseAuthorization();
+
+            // rota padrão alterada para abrir a tela de login por padrão
+            app.MapControllerRoute(
+                name: "default",
+                pattern: "{controller=Account}/{action=Login}/{id?}");
+
+            await app.RunAsync();
+        }
+    }
 }
-
-app.UseHttpsRedirection();
-
-app.UseAuthorization();
-
-app.MapControllers();
-
-app.Run();

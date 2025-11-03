@@ -1,0 +1,177 @@
+@model IEnumerable<HelpFast_Pim.Models.Chamado>
+@{
+	// Usar layout variante se fornecido pelo controller (ex: "Cliente", "Admin", "Tecnico")
+	var layoutVariant = ViewBag.LayoutVariant as string;
+	if (!string.IsNullOrEmpty(layoutVariant))
+	{
+		Layout = $"~/Views/Shared/_Layout{layoutVariant}.cshtml";
+	}
+	else
+	{
+		Layout = "~/Views/Shared/_Layout.cshtml";
+	}
+}
+
+<style>
+	/* Container geral alinhado ao centro semelhante ao protótipo */
+	body { background:#0f1b23; color:#fff; font-family: "Segoe UI", Roboto, Arial, sans-serif; }
+	.page-wrap { display:flex; justify-content:center; padding:40px 20px; }
+	.card {
+		width:640px;
+		max-width:92vw;
+		background: #17222a;
+		border-radius: 14px;
+		padding:34px 36px 42px;
+		box-shadow: 0 6px 18px rgba(3,6,10,0.45);
+	}
+	.header {
+		text-align:center;
+		margin-bottom: 18px;
+	}
+	.logo {
+		display:block;
+		margin: 0 auto 12px;
+		width:86px;
+		height:86px;
+		background: transparent;
+		/* Placeholder circular logo similar ao protótipo */
+		border-radius:50%;
+	}
+	h1.title {
+		font-size:34px;
+		font-weight:600;
+		margin:6px 0 22px;
+		color:#e7f0f4;
+		letter-spacing:0.6px;
+	}
+	.table-head {
+		display:grid;
+		grid-template-columns: 120px 1fr 78px;
+		gap:12px;
+		color:#c8d6db;
+		font-weight:600;
+		padding:8px 8px 6px 8px;
+		align-items:center;
+	}
+	.list {
+		margin-top:10px;
+		display:flex;
+		flex-direction:column;
+		gap:12px;
+		min-height:180px; /* garante espaço do protótipo */
+	}
+	.row {
+		display:grid;
+		grid-template-columns: 120px 1fr 78px;
+		gap:12px;
+		align-items:center;
+		background: #e7eaec;
+		color:#0d2229;
+		padding:10px 12px;
+		border-radius:24px;
+		box-shadow: inset 0 -2px 0 rgba(0,0,0,0.04);
+	}
+	.id-pill {
+		display:inline-flex;
+		align-items:center;
+		justify-content:center;
+		background:transparent;
+		font-weight:700;
+		border-radius:12px;
+		padding:6px 10px;
+	}
+	.subject {
+		padding-left:6px;
+		font-size:16px;
+		white-space:nowrap;
+		overflow:hidden;
+		text-overflow:ellipsis;
+	}
+	.actions {
+		display:flex;
+		justify-content:flex-end;
+	}
+	.view-btn {
+		background:transparent;
+		border:none;
+		cursor:pointer;
+		padding:8px;
+		border-radius:12px;
+		display:inline-flex;
+		align-items:center;
+		justify-content:center;
+		color:#0d2229;
+	}
+	.view-btn:hover { filter: brightness(0.95); transform: translateY(-1px); }
+	.eye {
+		width:22px;
+		height:22px;
+	}
+	.footer {
+		display:flex;
+		justify-content:center;
+		margin-top:26px;
+	}
+	.back-btn {
+		background:#ffffff;
+		color:#0d2229;
+		padding:10px 26px;
+		border-radius:10px;
+		border:none;
+		font-weight:600;
+		cursor:pointer;
+		box-shadow: 0 6px 0 rgba(4,7,10,0.18);
+	}
+	.back-btn:hover { transform: translateY(-1px); }
+	@@media (max-width:520px){
+		.table-head, .row { grid-template-columns: 80px 1fr 60px; }
+		.card { padding:22px; }
+		h1.title { font-size:28px; }
+	}
+</style>
+
+<div class="page-wrap">
+	<div class="card" role="main">
+		<div class="header">
+			<div class="logo" aria-hidden="true">
+				<!-- small circular graphic to mimic protótipo -->
+			</div>
+			<h1 class="title">Meus Chamados</h1>
+		</div>
+
+		<div class="table-head" aria-hidden="true">
+			<div>ID:</div>
+			<div>Motivo:</div>
+			<div style="text-align:right">Ações</div>
+		</div>
+
+		<div class="list" role="list">
+			@foreach(var item in Model ?? Enumerable.Empty<HelpFast_Pim.Models.Chamado>())
+			{
+				<div class="row" role="listitem" aria-label="Chamado @item.Id">
+					<div class="id-pill">#@item.Id</div>
+					<div class="subject" title="@item.Motivo">@item.Motivo</div>
+					<div class="actions">
+						<!-- direciona para a tela de Chat passando id e Motivo -->
+						<a asp-controller="Chat" asp-action="Chat" asp-route-id="@item.Id" asp-route-motivo="@item.Motivo" class="view-btn" title="Visualizar">
+							<svg class="eye" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+								<path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" stroke="#0d2229" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+								<circle cx="12" cy="12" r="3" stroke="#0d2229" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+							</svg>
+						</a>
+					</div>
+				</div>
+			}
+			@if (Model == null || !Model.Any())
+			{
+				<div style="color:#9fb0b6; padding:18px 6px; text-align:center;">Nenhum chamado encontrado.</div>
+			}
+		</div>
+
+		<div class="footer">
+			<a asp-controller="Home" asp-action="Index">
+				<button class="back-btn" type="button">Voltar ao menu</button>
+			</a>
+		</div>
+	</div>
+</div>

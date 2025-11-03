@@ -1,0 +1,34 @@
+@model HelpFast_Pim.Models.Usuario
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var nome = Model?.Nome ?? "Usuário";
+    var cargoId = Model?.CargoId ?? 0;
+}
+<div class="card" style="width:420px;">
+    <div class="card-inner" style="text-align:center;padding:36px 28px;">
+        <div class="logo-wrap" style="margin-bottom:18px;">
+            <img src="/images/logoh.png" alt="HelpFast" />
+        </div>
+
+        <h2 style="margin:8px 0 22px;font-weight:500;font-size:22px;">Olá @nome</h2>
+
+        @if (cargoId == 3) {
+            <!-- Cliente -->
+            <div style="display:flex;flex-direction:column;gap:18px;padding:12px 28px;">
+                <a asp-controller="Chamados" asp-action="Create" class="btn primary" style="padding:12px;border-radius:12px;">Solicitar Chamado</a>
+                <a asp-controller="Chamados" asp-action="MeusChamados" class="btn secondary small" style="padding:12px;border-radius:12px;">Meus Chamados</a>
+            </div>
+        } else if (cargoId == 1) {
+            <!-- Administrador -->
+            <div style="display:flex;flex-direction:column;gap:18px;padding:12px 28px;">
+                <a asp-controller="Chamados" asp-action="Index" class="btn secondary small" style="padding:12px;border-radius:12px;">Visualizar chamados</a>
+                <a asp-controller="Usuarios" asp-action="Gerenciar" class="btn secondary small" style="padding:12px;border-radius:12px;">Gerenciar Usuários</a>
+            </div>
+        } else {
+            <!-- Técnico (default) -->
+            <div style="display:flex;flex-direction:column;gap:18px;padding:12px 28px;">
+                <a asp-controller="Chamados" asp-action="Atribuidos" class="btn secondary small" style="padding:12px;border-radius:12px;">Consultar chamados</a>
+            </div>
+        }
+    </div>
+</div>

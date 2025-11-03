@@ -1,0 +1,239 @@
+@model dynamic
+@{
+	Layout = "~/Views/Shared/_Layout.cshtml";
+	ViewData["Title"] = "Chat";
+}
+<style>
+	/* estilo ajustado para ficar similar ao protótipo */
+	.chat-page { display:flex; justify-content:center; padding:40px 0; background:transparent; }
+	.chat-card {
+		background:#13202a; border-radius:18px; padding:28px; width:760px; color:#fff; box-shadow:0 10px 0 rgba(0,0,0,0.4);
+	}
+	.header { display:flex; align-items:center; justify-content:center; gap:18px; margin-bottom:18px; }
+	.header .logo { height:78px; }
+	.header .meta { color:#fff; font-size:15px; }
+	.header .meta strong { margin-right:10px; font-weight:600; }
+
+	.chat-inner {
+		background:#ffffff; color:#111; border-radius:12px; padding:18px; min-height:420px;
+		display:flex; flex-direction:column;
+	}
+	.messages {
+		flex:1; overflow:auto; padding:8px; display:flex; flex-direction:column; gap:12px;
+	}
+	.msg {
+		max-width:72%; padding:12px 14px; border-radius:14px; font-size:14px; line-height:1.2;
+		position:relative;
+		box-shadow: 0 2px 0 rgba(0,0,0,0.06);
+	}
+	.msg .meta-time { position:absolute; right:10px; top:6px; font-size:11px; color:#666; }
+	.msg.assistant {
+		background:#dcdcdc; color:#000; align-self:flex-start; border-bottom-left-radius:6px;
+	}
+	.msg.client {
+		background:#bfc6cc; color:#000; align-self:flex-end; border-bottom-right-radius:6px;
+	}
+
+	.chat-input-bar {
+		display:flex; align-items:center; gap:8px; margin-top:14px;
+		background:transparent; padding:6px 6px 0 6px;
+	}
+	.input-wrap {
+		flex:1; background:#f1f3f5; border-radius:999px; padding:10px 14px; display:flex; align-items:center; gap:8px;
+	}
+	.btn-round { width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; background:#fff; color:#333; cursor:pointer; border:0; }
+	.chat-input { flex:1; border:0; outline:none; background:transparent; font-size:14px; color:#111; }
+	.send-btn { background:#0f2430; color:#fff; border-radius:999px; border:0; padding:8px 14px; cursor:pointer; }
+
+	.back-btn { display:block; margin:18px auto 0; background:#fff; color:#000; padding:10px 28px; border-radius:8px; text-decoration:none; text-align:center; width:220px; }
+
+	/* responsivo */
+	@@media (max-width:760px) {
+		.chat-card { width:94%; padding:16px; }
+		.header .logo { height:56px; }
+	}
+</style>
+
+<div class="chat-page">
+	<div class="chat-card">
+		<div class="header">
+			<img class="logo" src="/images/logoh.png" alt="HelpFast" />
+			<div class="meta">
+				<div><strong>ID Chamado:</strong> <span>@ViewBag.ChamadoId</span></div>
+				<div style="margin-top:6px;"><strong>Motivo:</strong> <span>@ViewBag.Motivo</span></div>
+			</div>
+		</div>
+ 
+ 		<!-- root com dados do chamado disponíveis para o JS -->
+		<div class="chat-inner" id="chat-root"
+		     data-chamado-id="@((ViewBag.ChamadoNumericId ?? ""))"
+		     data-motivo="@((ViewBag.Motivo ?? ""))">
+			<div class="messages" id="messages" aria-live="polite" aria-atomic="false">
+				<!-- mensagem inicial: usa resposta retornada pelo controller (ViewBag.InitialBotMessage) quando disponível -->
+				@if (!string.IsNullOrEmpty((string?)ViewBag.InitialBotMessage))
+				{
+					<div class="msg assistant">
+						<div><strong>Assistente</strong></div>
+						<div>@ViewBag.InitialBotMessage</div>
+						<div class="meta-time">@DateTime.Now.ToString("HH:mm")</div>
+					</div>
+				}
+				else
+				{
+					<div class="msg assistant">
+						<div><strong>Assistente</strong></div>
+						<div>Olá, sou o Assistente Virtual do Help Fast. Como posso te ajudar?</div>
+						<div class="meta-time">@DateTime.Now.ToString("HH:mm")</div>
+					</div>
+				}
+			</div>
+
+			<div class="chat-input-bar" aria-hidden="false">
+				<button type="button" class="btn-round" id="btn-plus" title="Anexar arquivo">＋</button>
+				<div class="input-wrap">
+					<input id="chat-input" class="chat-input" placeholder="Digite aqui:" aria-label="Digite sua mensagem" />
+					<button type="button" class="btn-round" id="btn-send-icon" title="Enviar">✈</button>
+				</div>
+			</div>
+			<!-- input de arquivo oculto e rótulo com nome do arquivo selecionado -->
+			<!-- aceita imagens, pdf e excel; múltiplos arquivos -->
+			<input id="file-input" type="file" multiple accept=".png,.jpg,.jpeg,.gif,.pdf,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none" />
+			<div id="file-name" style="display:none; margin-top:8px; color:#111; background:#f1f3f5; padding:6px 10px; border-radius:8px; max-width:100%; overflow:hidden; text-overflow:ellipsis;"></div>
+		</div>
+ 
+		<a class="back-btn" href="@Url.Action("Index","Home")">Voltar ao menu</a>
+	</div>
+</div>
+ 
+@section Scripts {
++	<script>
++		document.addEventListener('DOMContentLoaded', function(){
++			const webhookUrl = "/Chat/Send";
++			const root = document.getElementById('chat-root');
++			const messagesEl = document.getElementById('messages');
++			const inputEl = document.getElementById('chat-input');
++			const sendIcon = document.getElementById('btn-send-icon');
++			const plusBtn = document.getElementById('btn-plus');
++			const fileInput = document.getElementById('file-input');
++			const fileNameEl = document.getElementById('file-name');
++
++			if (!root || !messagesEl || !inputEl || !sendIcon || !plusBtn || !fileInput) {
++				console.error('Elementos do chat não encontrados. Verifique o HTML.');
++				return;
++			}
++
++			const chamadoId = root.dataset.chamadoId || null;
++			const motivo = root.dataset.motivo || "";
++
++			function formatTime(date = new Date()){
++				return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
++			}
++
++			function appendMessage(type, text){
++				const wrapper = document.createElement('div');
++				wrapper.className = 'msg ' + (type === 'me' ? 'client' : 'assistant');
++				const strong = document.createElement('div');
++				strong.innerHTML = type === 'me' ? '<strong>Você</strong>' : '<strong>Assistente</strong>';
++				const body = document.createElement('div');
++				body.innerText = text;
++				const time = document.createElement('div');
++				time.className = 'meta-time';
++				time.innerText = formatTime();
++				wrapper.appendChild(strong);
++				wrapper.appendChild(body);
++				wrapper.appendChild(time);
++				messagesEl.appendChild(wrapper);
++				messagesEl.scrollTop = messagesEl.scrollHeight;
++			}
++
++			let sending = false;
++			async function sendMessage(){
++				if (sending) return;
++				const text = inputEl.value.trim();
++				const files = fileInput.files ? Array.from(fileInput.files) : [];
++				if (!text && files.length === 0) return;
++
++				// feedback imediato (listar nomes se houver mais de um)
++				if (files.length) {
++					const names = files.map(f => f.name).join(', ');
++					appendMessage('me', (text ? text + ' ' : '') + `(anexos: ${names})`);
++				} else {
++					appendMessage('me', text);
++				}
++
++				inputEl.value = '';
++				fileNameEl.style.display = 'none';
++				fileNameEl.textContent = '';
++
++				sending = true;
++				sendIcon.setAttribute('disabled','disabled');
++
++				try {
++					let res;
++					if (files.length) {
++						const fd = new FormData();
++						fd.append('message', text);
++						if (chamadoId) fd.append('chamadoId', chamadoId);
++						if (motivo) fd.append('motivo', motivo);
++						// adiciona todos os arquivos (campo "file" repetido)
++						files.forEach(f => fd.append('file', f, f.name));
++						res = await fetch(webhookUrl, { method: 'POST', body: fd });
++					} else {
++						// envia JSON com "motivo" em vez de "assunto"
++						const payload = { message: text, chamadoId: chamadoId ? parseInt(chamadoId,10) : null, motivo: motivo };
++						res = await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
++					}
++
++					let replyText = '';
++					try {
++						const ct = res.headers.get('content-type') || '';
++						if (ct.indexOf('application/json') !== -1) {
++							const data = await res.json();
++							replyText = data.reply || data.message || data.text || JSON.stringify(data);
++						} else {
++							replyText = await res.text();
++						}
++					} catch (e) {
++						replyText = '(sem resposta)';
++					}
++					appendMessage('bot', replyText || '(sem resposta)');
++				} catch (err) {
++					appendMessage('bot', 'Erro ao enviar mensagem. Verifique a conexão.');
++					console.error(err);
++				} finally {
++					sending = false;
++					sendIcon.removeAttribute('disabled');
++					try { fileInput.value = ''; } catch(e){}
++				}
++			}
++
++			// Enter envia (não envia com Shift+Enter)
++			inputEl.addEventListener('keydown', function(e){
++				if (e.key === 'Enter' && !e.shiftKey) {
++					e.preventDefault();
++					sendMessage();
++				}
++			});
++
++			// clique no avião envia
++			sendIcon.addEventListener('click', sendMessage);
++
++			// botão "+" abre seletor
++			plusBtn.addEventListener('click', function(){ fileInput.click(); });
++
++			// quando arquivo selecionado, mostra nomes
++			fileInput.addEventListener('change', function(){
++				if (fileInput.files && fileInput.files.length) {
++					const names = Array.from(fileInput.files).map(f => f.name).join(', ');
++					fileNameEl.textContent = names;
++					fileNameEl.style.display = 'block';
++				} else {
++					fileNameEl.textContent = '';
++					fileNameEl.style.display = 'none';
++				}
++			});
++
++			inputEl.focus();
++		});
++	</script>
+ }

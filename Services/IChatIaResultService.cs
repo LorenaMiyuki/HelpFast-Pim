@@ -1,6 +1,6 @@
-using WebAppSuporteIA.Models;
+using HelpFast_Pim.Models;
 
-namespace WebAppSuporteIA.Services;
+namespace HelpFast_Pim.Services;
 
 public interface IChatIaResultService
 {

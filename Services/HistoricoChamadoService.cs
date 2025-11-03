@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using WebAppSuporteIA.Models;
-using WebAppSuporteIA.Data;
+using HelpFast_Pim.Models;
+using HelpFast_Pim.Data;
 
-namespace WebAppSuporteIA.Services
+namespace HelpFast_Pim.Services
 {
     public class HistoricoChamadoService : IHistoricoChamadoService
     {
