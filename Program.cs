@@ -23,21 +23,34 @@ namespace HelpFast_Pim
             builder.Services.AddHttpClient();
 
             // register DbContext (uses DefaultConnection from appsettings.json)
-            // Adicionado EnableRetryOnFailure e CommandTimeout para resiliência contra falhas transitórias do Azure SQL
-            builder.Services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(
-                    builder.Configuration.GetConnectionString("DefaultConnection"),
-                    sqlOptions =>
-                    {
-                        sqlOptions.EnableRetryOnFailure(
-                            maxRetryCount: 5,
-                            maxRetryDelay: TimeSpan.FromSeconds(10),
-                            errorNumbersToAdd: null);
-                        sqlOptions.CommandTimeout(60);
-                    }));
+            // Use InMemory database during Development to avoid hard-failing when Azure SQL is unreachable locally.
+            if (builder.Environment.IsDevelopment())
+            {
+                builder.Services.AddDbContext<AppDbContext>(options =>
+                    options.UseInMemoryDatabase("HelpFast_Dev_Fallback"));
+            }
+            else
+            {
+                var defaultConn = builder.Configuration.GetConnectionString("DefaultConnection");
+                // Adicionado EnableRetryOnFailure e CommandTimeout para resiliência contra falhas transitórias do Azure SQL
+                builder.Services.AddDbContext<AppDbContext>(options =>
+                    options.UseSqlServer(
+                        defaultConn,
+                        sqlOptions =>
+                        {
+                            sqlOptions.EnableRetryOnFailure(
+                                maxRetryCount: 5,
+                                maxRetryDelay: TimeSpan.FromSeconds(10),
+                                errorNumbersToAdd: null);
+                            sqlOptions.CommandTimeout(60);
+                        }));
+            }
 
             // registrar serviço de usuário (garante que o tipo seja encontrado)
             builder.Services.AddScoped<IUsuarioService, UsuarioService>();
+            // registrar serviços de chat e resultados da IA
+            builder.Services.AddScoped<IChatService, ChatService>();
+            builder.Services.AddScoped<IChatIaResultService, ChatIaResultService>();
 
             // Authentication - cookie
             builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
@@ -56,7 +69,10 @@ namespace HelpFast_Pim
                 app.UseHsts();
             }
 
-            app.UseHttpsRedirection();
+            if (!app.Environment.IsDevelopment())
+            {
+                app.UseHttpsRedirection();
+            }
             app.UseStaticFiles();
 
             app.UseRouting();

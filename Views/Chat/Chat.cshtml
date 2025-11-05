@@ -161,16 +161,50 @@
 					let replyText = '';
 					try {
 						const ct = res.headers.get('content-type') || '';
+						let data = null;
 						if (ct.indexOf('application/json') !== -1) {
-							const data = await res.json();
-							replyText = data.reply || data.message || data.text || JSON.stringify(data);
+							data = await res.json();
 						} else {
-							replyText = await res.text();
+							const txt = await res.text();
+							try { data = JSON.parse(txt); } catch(e){ data = { text: txt }; }
+						}
+
+						// If the server responded with processing:true, poll for the assistant reply
+						if (data && data.processing && data.chatId) {
+							// show a small 'processing' indicator instead of the workflow text
+							appendMessage('assistant', 'Aguarde enquanto processamos sua solicitação...');
+							// poll endpoint until assistant message appears (timeout 20s)
+							const start = Date.now();
+							let found = false;
+							while (Date.now() - start < 20000 && !found) {
+								await new Promise(r => setTimeout(r, 1500));
+								try {
+									const pollRes = await fetch(`/Chat/AssistantReplyForChat/${data.chatId}`);
+									if (!pollRes.ok) continue;
+									const pollData = await pollRes.json();
+									if (pollData && pollData.found && pollData.message) {
+										// remove the last processing message and append actual assistant message
+										const last = messagesEl.lastElementChild;
+										if (last && last.innerText.indexOf('Aguarde enquanto processamos') !== -1) {
+											messagesEl.removeChild(last);
+										}
+										appendMessage('assistant', pollData.message);
+										found = true;
+										break;
+									}
+								} catch (e) { /* ignore and retry */ }
+							}
+							if (!found) {
+								// if not found, show generic fallback
+								appendMessage('assistant', '(sem resposta no momento)');
+							}
+						} else {
+							replyText = (data && (data.reply || data.message || data.text)) || JSON.stringify(data);
+							appendMessage('assistant', replyText || '(sem resposta)');
 						}
 					} catch (e) {
-						replyText = '(sem resposta)';
+						appendMessage('bot', '(sem resposta)');
 					}
-					appendMessage('bot', replyText || '(sem resposta)');
 				} catch (err) {
 					appendMessage('bot', 'Erro ao enviar mensagem. Verifique a conexão.');
 					console.error(err);
