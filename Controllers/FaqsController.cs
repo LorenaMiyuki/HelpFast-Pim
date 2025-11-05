@@ -19,10 +19,22 @@ namespace HelpFast_Pim.Controllers
 		}
 
 		// GET: /Faqs/Faq
-		public async Task<IActionResult> Faq()
+		public async Task<IActionResult> Faq(int? chamadoId, string motivo)
 		{
 			// Certifique-se de que o seu DbContext tem DbSet<Faq> Faqs
 			var faqs = await _context.Faqs.OrderBy(f => f.Id).ToListAsync();
+
+			// se for chamado encaminhado do fluxo de criação, passa para a view para link direto ao chat
+			if (chamadoId.HasValue)
+			{
+				var chamado = await _context.Chamados.FindAsync(chamadoId.Value);
+				if (chamado != null)
+				{
+					ViewBag.ChamadoNumericId = chamado.Id;
+					ViewBag.Motivo = !string.IsNullOrWhiteSpace(motivo) ? motivo : chamado.Motivo;
+				}
+			}
+
 			return View("Faq", faqs);
 		}
 

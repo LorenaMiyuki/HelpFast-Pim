@@ -52,7 +52,8 @@ namespace HelpFast_Pim.Controllers
             await _context.SaveChangesAsync();
 
             // criar e então redirecionar o usuário para a tela de FAQ
-            return RedirectToAction("Faq", "Faqs");
+            // passa o id do chamado e motivo via querystring para a FAQ poder encaminhar ao chat
+            return RedirectToAction("Faq", "Faqs", new { chamadoId = model.Id, motivo = model.Motivo });
         }
 
         [HttpGet("Chamados/Meus")]

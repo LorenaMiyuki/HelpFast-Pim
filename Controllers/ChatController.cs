@@ -8,6 +8,8 @@ using System.Text.Json;
 using System.IO;
 using System.Linq;
 using System.Security.Claims;
+using System.Collections.Generic;
+using HelpFast_Pim.Models;
 
 namespace HelpFast_Pim.Controllers
 {
@@ -82,7 +84,12 @@ namespace HelpFast_Pim.Controllers
 		[HttpPost("Send")]
 		public async Task<IActionResult> Send()
 		{
-			var webhook = "https://n8n.grupoopt.com.br/webhook/c1a4a3ff-2949-46a5-9954-16ee6f95f453/chat";
+			var webhook = "https://n8n.grupoopt.com.br/webhook-test/4bafbef8-1d6a-4c74-b0b3-358ea7f43007";
+
+			// tenta identificar usuário autenticado (para salvar mensagem localmente antes de enviar ao fluxo)
+			var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+			int remetenteId = 0;
+			if (!string.IsNullOrWhiteSpace(idClaim) && int.TryParse(idClaim, out var uid)) remetenteId = uid;
 
 			// Se for multipart/form-data com arquivo
 			if (Request.HasFormContentType)
@@ -92,12 +99,22 @@ namespace HelpFast_Pim.Controllers
 				var chamadoId = form["chamadoId"].FirstOrDefault();
 				var motivo = form["motivo"].FirstOrDefault() ?? form["assunto"].FirstOrDefault();
 
+				// persiste uma entrada de Chat local representando a mensagem do usuário
+				int userChatId = 0;
+				try {
+					var c = new Chat { ChamadoId = string.IsNullOrWhiteSpace(chamadoId) ? (int?)null : int.Parse(chamadoId), RemetenteId = remetenteId == 0 ? 1 : remetenteId, DestinatarioId = remetenteId == 0 ? 1 : remetenteId, Mensagem = message ?? string.Empty, DataEnvio = DateTime.UtcNow };
+					_context.Chats.Add(c);
+					await _context.SaveChangesAsync();
+					userChatId = c.Id;
+				} catch { userChatId = 0; }
+
 				using var multipart = new MultipartFormDataContent();
 
 				// campos simples
 				multipart.Add(new StringContent(message ?? ""), "message");
 				if (!string.IsNullOrEmpty(chamadoId)) multipart.Add(new StringContent(chamadoId), "chamadoId");
 				if (!string.IsNullOrEmpty(motivo)) multipart.Add(new StringContent(motivo), "motivo");
+				if (userChatId != 0) multipart.Add(new StringContent(userChatId.ToString()), "chatId");
 
 				// todos os arquivos (se houver) -> envia vários campos "file"
 				foreach (var f in form.Files)
@@ -133,9 +150,31 @@ namespace HelpFast_Pim.Controllers
 				// assume JSON payload no corpo
 				using var reader = new StreamReader(Request.Body, Encoding.UTF8);
 				var body = await reader.ReadToEndAsync();
+
+				// tenta extrair chamadoId do JSON para salvar o chat
+				int? chamadoFromJson = null;
+				try {
+					using var doc = JsonDocument.Parse(body);
+					if (doc.RootElement.TryGetProperty("chamadoId", out var ch) && ch.ValueKind == JsonValueKind.Number && ch.TryGetInt32(out var chv)) chamadoFromJson = chv;
+				} catch {}
+
+				int userChatId2 = 0;
+				try {
+					var c = new Chat { ChamadoId = chamadoFromJson, RemetenteId = remetenteId == 0 ? 1 : remetenteId, DestinatarioId = remetenteId == 0 ? 1 : remetenteId, Mensagem = body ?? string.Empty, DataEnvio = DateTime.UtcNow };
+					_context.Chats.Add(c);
+					await _context.SaveChangesAsync();
+					userChatId2 = c.Id;
+				} catch { userChatId2 = 0; }
+
 				try
 				{
-					using var content = new StringContent(body, Encoding.UTF8, "application/json");
+					// insere chatId no payload JSON antes de enviar
+					Dictionary<string, object>? map = null;
+					try { map = JsonSerializer.Deserialize<Dictionary<string, object>>(body); } catch { map = new Dictionary<string, object>(); }
+					if (map == null) map = new Dictionary<string, object>();
+					if (userChatId2 != 0) map["chatId"] = userChatId2;
+					var toSend = JsonSerializer.Serialize(map);
+					using var content = new StringContent(toSend, Encoding.UTF8, "application/json");
 					using var client = new HttpClient();
 					var resp = await client.PostAsync(webhook, content);
 					var respText = await resp.Content.ReadAsStringAsync();
@@ -153,7 +192,7 @@ namespace HelpFast_Pim.Controllers
 		// Envia evento "start" ao webhook e retorna um texto de resposta (ou null)
 		private async Task<string> TriggerStartAndGetReplyAsync(int? chamadoId, string motivo)
 		{
-			var webhook = "https://n8n.grupoopt.com.br/webhook/c1a4a3ff-2949-46a5-9954-16ee6f95f453/chat";
+			var webhook = "https://n8n.grupoopt.com.br/webhook-test/4bafbef8-1d6a-4c74-b0b3-358ea7f43007";
 			try
 			{
 				using var client = new System.Net.Http.HttpClient { Timeout = System.TimeSpan.FromSeconds(8) };
@@ -182,6 +221,83 @@ namespace HelpFast_Pim.Controllers
 				// falha silenciosa: não impede carregamento da página
 				return null;
 			}
+		}
+
+		// Endpoint que recebe a resposta da IA (usado pelo fluxo n8n)
+		[HttpPost("ReceiveAiResponse")]
+		public async Task<IActionResult> ReceiveAiResponse([FromBody] JsonElement payload)
+		{
+			// raw
+			var raw = payload.ToString();
+
+			int? chatId = null;
+			if (payload.TryGetProperty("chatId", out var p) && p.ValueKind == JsonValueKind.Number && p.TryGetInt32(out var cid)) chatId = cid;
+
+			// se veio apenas chamadoId, tenta ligar ao último chat daquele chamado
+			if (!chatId.HasValue && payload.TryGetProperty("chamadoId", out var ch) && ch.ValueKind == JsonValueKind.Number && ch.TryGetInt32(out var chv))
+			{
+				var last = await _context.Chats.Where(c => c.ChamadoId == chv).OrderByDescending(c => c.Id).FirstOrDefaultAsync();
+				if (last != null) chatId = last.Id;
+			}
+
+			string resultJson = string.Empty;
+			if (payload.TryGetProperty("resultJson", out var rj)) resultJson = rj.ToString() ?? string.Empty;
+			else if (payload.TryGetProperty("reply", out var rp) && rp.ValueKind == JsonValueKind.String) resultJson = rp.GetString() ?? string.Empty;
+			else if (payload.TryGetProperty("text", out var tx) && tx.ValueKind == JsonValueKind.String) resultJson = tx.GetString() ?? string.Empty;
+			else resultJson = raw ?? string.Empty;
+
+			// Cria um registro de Chat para a mensagem do assistente e persiste o resultado da IA
+			// determina chamadoId (prefere do chat existente se disponível)
+			int? chamadoForAssistant = null;
+			Chat? userChat = null;
+			if (chatId.HasValue)
+			{
+				userChat = await _context.Chats.FindAsync(chatId.Value);
+				if (userChat != null) chamadoForAssistant = userChat.ChamadoId;
+			}
+			else
+			{
+				if (payload.TryGetProperty("chamadoId", out var ch2) && ch2.ValueKind == JsonValueKind.Number && ch2.TryGetInt32(out var chv2)) chamadoForAssistant = chv2;
+			}
+
+			var assistantSenderId = 1; // id do usuário "sistema"/assistente - ajuste se necessário
+			var recipientId = userChat?.RemetenteId ?? assistantSenderId;
+
+			// cria mensagem do assistente no Chats (limita Mensagem a 500 chars conforme modelo Chat)
+			// usa o texto já extraído em resultJson como conteúdo do balão do assistente
+			var assistantText = resultJson ?? string.Empty;
+			if (assistantText.Length > 500) assistantText = assistantText.Substring(0, 500);
+
+			var assistantChat = new Chat
+			{
+				ChamadoId = chamadoForAssistant,
+				RemetenteId = assistantSenderId,
+				DestinatarioId = recipientId,
+				Mensagem = assistantText,
+				DataEnvio = DateTime.UtcNow
+			};
+			_context.Chats.Add(assistantChat);
+			await _context.SaveChangesAsync();
+
+			var entity = new ChatIaResult { ChatId = assistantChat.Id, ResultJson = resultJson ?? string.Empty, CreatedAt = DateTime.UtcNow };
+			_context.ChatIaResults.Add(entity);
+			await _context.SaveChangesAsync();
+
+			return Ok(new { saved = true, chatIaResultId = entity.Id, assistantChatId = assistantChat.Id });
+		}
+
+		// GET: /Chat/Results/{chatId} - endpoint de debug para listar resultados IA salvos para um chat
+		[HttpGet("Results/{chatId}")]
+		public async Task<IActionResult> Results(int chatId)
+		{
+			var results = await _context.ChatIaResults
+				.Where(r => r.ChatId == chatId)
+				.OrderByDescending(r => r.CreatedAt)
+				.Select(r => new { r.Id, r.ChatId, r.ResultJson, r.CreatedAt })
+				.ToListAsync();
+
+			if (results == null || results.Count == 0) return NotFound(new { ok = false, message = "Nenhum resultado encontrado para esse chatId." });
+			return Ok(results);
 		}
 	}
 }

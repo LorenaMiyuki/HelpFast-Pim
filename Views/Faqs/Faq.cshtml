@@ -89,7 +89,14 @@
 
 		<div class="center-btn">
 			<!-- redireciona para a tela de Chat (pode receber id e assunto por query) -->
-			<a class="btn-primary-faq" href="@Url.Action("Chat","Chat")">Ir para o Chat</a>
+			@if (ViewBag.ChamadoNumericId != null)
+			{
+				<a class="btn-primary-faq" href="@Url.Action("Index","Chat", new { id = ViewBag.ChamadoNumericId, assunto = ViewBag.Motivo })">Ir para o Chat</a>
+			}
+			else
+			{
+				<a class="btn-primary-faq" href="@Url.Action("Index","Chat")">Ir para o Chat</a>
+			}
 		</div>
 	</div>
 </div>
