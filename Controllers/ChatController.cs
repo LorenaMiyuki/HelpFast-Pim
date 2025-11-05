@@ -24,12 +24,11 @@ namespace HelpFast_Pim.Controllers
 			_context = context;
 		}
 
-		// Expor /Chat e /Chat/Index
 		[HttpGet("")]
 		[HttpGet("Index")]
 		public async Task<IActionResult> Index(int? id, string assunto)
 		{
-			// tenta carregar o chamado pelo id, se fornecido
+			// tenta carregar o caralho do chamado aqui
 			int? chamadoNumericId = null;
 			string displayId = "#--";
 			string motivoFromDb = null;
@@ -39,11 +38,10 @@ namespace HelpFast_Pim.Controllers
 				var chamado = await _context.Chamados.FirstOrDefaultAsync(c => c.Id == id.Value);
 				if (chamado != null)
 				{
-					// somente o cliente que criou o chamado pode visualizar/abrir o chat
+
 					var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 					if (string.IsNullOrWhiteSpace(idClaim) || !int.TryParse(idClaim, out var userId) || chamado.ClienteId != userId)
 					{
-						// negar acesso para outro cliente
 						return Forbid();
 					}
 
@@ -53,14 +51,14 @@ namespace HelpFast_Pim.Controllers
 				}
 			}
 
-			// prioridade: motivo vindo do banco, senão querystring (param 'assunto' usado como fallback), senão mensagem padrão
+
 			ViewBag.ChamadoNumericId = chamadoNumericId;
 			ViewBag.ChamadoId = displayId;
 			ViewBag.Motivo = !string.IsNullOrWhiteSpace(motivoFromDb) ? motivoFromDb :
 				(!string.IsNullOrWhiteSpace(assunto) ? assunto : "Motivo não informado");
 			ViewBag.Assunto = ViewBag.Motivo;
 
-			// inicia atendimento automaticamente chamando o webhook e capturando resposta inicial
+
 			try
 			{
 				ViewBag.InitialBotMessage = await TriggerStartAndGetReplyAsync(chamadoNumericId, (string)ViewBag.Motivo);
@@ -73,7 +71,6 @@ namespace HelpFast_Pim.Controllers
 			return View("Chat");
 		}
 
-		// Expor /Chat/Chat para compatibilidade
 		[HttpGet("Chat")]
 		public Task<IActionResult> Chat(int? id, string assunto)
 		{
@@ -86,12 +83,11 @@ namespace HelpFast_Pim.Controllers
 		{
 			var webhook = "https://n8n.grupoopt.com.br/webhook-test/4bafbef8-1d6a-4c74-b0b3-358ea7f43007";
 
-			// tenta identificar usuário autenticado (para salvar mensagem localmente antes de enviar ao fluxo)
+
 			var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 			int remetenteId = 0;
 			if (!string.IsNullOrWhiteSpace(idClaim) && int.TryParse(idClaim, out var uid)) remetenteId = uid;
 
-			// Se for multipart/form-data com arquivo
 			if (Request.HasFormContentType)
 			{
 				var form = await Request.ReadFormAsync();
@@ -99,24 +95,24 @@ namespace HelpFast_Pim.Controllers
 				var chamadoId = form["chamadoId"].FirstOrDefault();
 				var motivo = form["motivo"].FirstOrDefault() ?? form["assunto"].FirstOrDefault();
 
-				// persiste uma entrada de Chat local representando a mensagem do usuário
 				int userChatId = 0;
-				try {
+				try
+				{
 					var c = new Chat { ChamadoId = string.IsNullOrWhiteSpace(chamadoId) ? (int?)null : int.Parse(chamadoId), RemetenteId = remetenteId == 0 ? 1 : remetenteId, DestinatarioId = remetenteId == 0 ? 1 : remetenteId, Mensagem = message ?? string.Empty, DataEnvio = DateTime.UtcNow };
 					_context.Chats.Add(c);
 					await _context.SaveChangesAsync();
 					userChatId = c.Id;
-				} catch { userChatId = 0; }
+				}
+				catch { userChatId = 0; }
 
 				using var multipart = new MultipartFormDataContent();
 
-				// campos simples
 				multipart.Add(new StringContent(message ?? ""), "message");
 				if (!string.IsNullOrEmpty(chamadoId)) multipart.Add(new StringContent(chamadoId), "chamadoId");
 				if (!string.IsNullOrEmpty(motivo)) multipart.Add(new StringContent(motivo), "motivo");
 				if (userChatId != 0) multipart.Add(new StringContent(userChatId.ToString()), "chatId");
 
-				// todos os arquivos (se houver) -> envia vários campos "file"
+
 				foreach (var f in form.Files)
 				{
 					if (f?.Length > 0)
@@ -132,7 +128,7 @@ namespace HelpFast_Pim.Controllers
 
 				try
 				{
-					// usa HttpClient local para não depender de IHttpClientFactory
+
 					using var client = new HttpClient();
 					var resp = await client.PostAsync(webhook, multipart);
 					var respText = await resp.Content.ReadAsStringAsync();
@@ -147,24 +143,27 @@ namespace HelpFast_Pim.Controllers
 			}
 			else
 			{
-				// assume JSON payload no corpo
+				// vou usar JSON para payload no corpo
 				using var reader = new StreamReader(Request.Body, Encoding.UTF8);
 				var body = await reader.ReadToEndAsync();
 
-				// tenta extrair chamadoId do JSON para salvar o chat
 				int? chamadoFromJson = null;
-				try {
+				try
+				{
 					using var doc = JsonDocument.Parse(body);
 					if (doc.RootElement.TryGetProperty("chamadoId", out var ch) && ch.ValueKind == JsonValueKind.Number && ch.TryGetInt32(out var chv)) chamadoFromJson = chv;
-				} catch {}
+				}
+				catch { }
 
 				int userChatId2 = 0;
-				try {
+				try
+				{
 					var c = new Chat { ChamadoId = chamadoFromJson, RemetenteId = remetenteId == 0 ? 1 : remetenteId, DestinatarioId = remetenteId == 0 ? 1 : remetenteId, Mensagem = body ?? string.Empty, DataEnvio = DateTime.UtcNow };
 					_context.Chats.Add(c);
 					await _context.SaveChangesAsync();
 					userChatId2 = c.Id;
-				} catch { userChatId2 = 0; }
+				}
+				catch { userChatId2 = 0; }
 
 				try
 				{
@@ -218,12 +217,12 @@ namespace HelpFast_Pim.Controllers
 			}
 			catch
 			{
-				// falha silenciosa: não impede carregamento da página
+
 				return null;
 			}
 		}
 
-		// Endpoint que recebe a resposta da IA (usado pelo fluxo n8n)
+		// Endpoint que recebe a resposta da IA
 		[HttpPost("ReceiveAiResponse")]
 		public async Task<IActionResult> ReceiveAiResponse([FromBody] JsonElement payload)
 		{
@@ -233,7 +232,6 @@ namespace HelpFast_Pim.Controllers
 			int? chatId = null;
 			if (payload.TryGetProperty("chatId", out var p) && p.ValueKind == JsonValueKind.Number && p.TryGetInt32(out var cid)) chatId = cid;
 
-			// se veio apenas chamadoId, tenta ligar ao último chat daquele chamado
 			if (!chatId.HasValue && payload.TryGetProperty("chamadoId", out var ch) && ch.ValueKind == JsonValueKind.Number && ch.TryGetInt32(out var chv))
 			{
 				var last = await _context.Chats.Where(c => c.ChamadoId == chv).OrderByDescending(c => c.Id).FirstOrDefaultAsync();
@@ -246,8 +244,6 @@ namespace HelpFast_Pim.Controllers
 			else if (payload.TryGetProperty("text", out var tx) && tx.ValueKind == JsonValueKind.String) resultJson = tx.GetString() ?? string.Empty;
 			else resultJson = raw ?? string.Empty;
 
-			// Cria um registro de Chat para a mensagem do assistente e persiste o resultado da IA
-			// determina chamadoId (prefere do chat existente se disponível)
 			int? chamadoForAssistant = null;
 			Chat? userChat = null;
 			if (chatId.HasValue)
@@ -260,11 +256,9 @@ namespace HelpFast_Pim.Controllers
 				if (payload.TryGetProperty("chamadoId", out var ch2) && ch2.ValueKind == JsonValueKind.Number && ch2.TryGetInt32(out var chv2)) chamadoForAssistant = chv2;
 			}
 
-			var assistantSenderId = 1; // id do usuário "sistema"/assistente - ajuste se necessário
+			var assistantSenderId = 1;
 			var recipientId = userChat?.RemetenteId ?? assistantSenderId;
 
-			// cria mensagem do assistente no Chats (limita Mensagem a 500 chars conforme modelo Chat)
-			// usa o texto já extraído em resultJson como conteúdo do balão do assistente
 			var assistantText = resultJson ?? string.Empty;
 			if (assistantText.Length > 500) assistantText = assistantText.Substring(0, 500);
 
@@ -284,20 +278,6 @@ namespace HelpFast_Pim.Controllers
 			await _context.SaveChangesAsync();
 
 			return Ok(new { saved = true, chatIaResultId = entity.Id, assistantChatId = assistantChat.Id });
-		}
-
-		// GET: /Chat/Results/{chatId} - endpoint de debug para listar resultados IA salvos para um chat
-		[HttpGet("Results/{chatId}")]
-		public async Task<IActionResult> Results(int chatId)
-		{
-			var results = await _context.ChatIaResults
-				.Where(r => r.ChatId == chatId)
-				.OrderByDescending(r => r.CreatedAt)
-				.Select(r => new { r.Id, r.ChatId, r.ResultJson, r.CreatedAt })
-				.ToListAsync();
-
-			if (results == null || results.Count == 0) return NotFound(new { ok = false, message = "Nenhum resultado encontrado para esse chatId." });
-			return Ok(results);
 		}
 	}
 }

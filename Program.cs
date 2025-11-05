@@ -38,6 +38,8 @@ namespace HelpFast_Pim
 
             // registrar serviço de usuário (garante que o tipo seja encontrado)
             builder.Services.AddScoped<IUsuarioService, UsuarioService>();
+            // registrar serviço para Chat IA results (webhook)
+            builder.Services.AddScoped<IChatIaResultService, ChatIaResultService>();
 
             // Authentication - cookie
             builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

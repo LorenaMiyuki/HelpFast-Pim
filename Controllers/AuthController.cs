@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Configuration and services
 builder.Services.AddControllersWithViews();
 
 // register DbContext (uses DefaultConnection from appsettings.json)
@@ -26,10 +25,10 @@ builder.Services.AddDbContext<AppDbContext>(options =>
             sqlOptions.CommandTimeout(60);
         }));
 
-// registrar serviço de usuário (garante que o tipo seja encontrado)
+// registrar serviço de usuário
 builder.Services.AddScoped<IUsuarioService, UsuarioService>();
 
-// Authentication - cookie
+// Authentication - cookies
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -39,7 +38,6 @@ builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationSc
 
 var app = builder.Build();
 
-// middleware
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");
@@ -54,11 +52,8 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
-// rota padrão alterada para abrir a tela de login por padrão
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Account}/{action=Login}/{id?}");
 
 app.Run();
-
-// ...existing code...

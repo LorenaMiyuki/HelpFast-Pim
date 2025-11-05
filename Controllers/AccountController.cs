@@ -28,7 +28,7 @@ namespace HelpFast_Pim.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(Usuario model, string? returnUrl = null)
         {
-            // Garantir que apenas Email e Senha sejam validados aqui
+            // Garantir que apenas Email e Senha sejam validados
             ModelState.Clear();
 
             if (model == null || string.IsNullOrWhiteSpace(model.Email) || string.IsNullOrWhiteSpace(model.Senha))
@@ -56,7 +56,7 @@ namespace HelpFast_Pim.Controllers
                 // Atualiza último login
                 await _usuarioService.AtualizarUltimoLoginAsync(usuario.Id);
 
-                // Criar claims e autenticar via cookie
+                // Criar claims e autenticar via cookies
                 var claims = new[]
                 {
                     new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),
@@ -116,7 +116,7 @@ namespace HelpFast_Pim.Controllers
                     Nome = model.Nome.Trim(),
                     Email = model.Email.Trim(),
                     Telefone = model.Telefone,
-                    CargoId = 3 // força Cliente (ID 3) automaticamente
+                    CargoId = 3
                 };
 
                 var criado = await _usuarioService.RegistrarAsync(usuario, model.Senha);
@@ -126,8 +126,6 @@ namespace HelpFast_Pim.Controllers
                     return View(model);
                 }
 
-                // NÃO autenticar automaticamente.
-                // Passar mensagem de sucesso para a tela de login e redirecionar para Login.
                 TempData["SuccessMessage"] = "Cadastro realizado com sucesso. Faça login para continuar.";
                 return RedirectToAction("Login", "Account");
             }

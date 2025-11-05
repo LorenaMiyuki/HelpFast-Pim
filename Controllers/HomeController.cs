@@ -31,7 +31,6 @@ namespace HelpFast_Pim.Controllers
             var usuario = await _usuarioService.ObterPorIdAsync(userId);
             if (usuario == null)
             {
-                // usuário não encontrado -> logout e redireciona ao login
                 await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                 return RedirectToAction("Login", "Account");
             }

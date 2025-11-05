@@ -29,6 +29,11 @@ namespace HelpFast_Pim.Services
             return result;
         }
 
+        public async Task<bool> ChatExisteAsync(int chatId)
+        {
+            return await _context.Chats.AnyAsync(c => c.Id == chatId);
+        }
+
         public async Task<ChatIaResult?> AtualizarAsync(int id, ChatIaResult result)
         {
             if (id != result.Id) return null;
