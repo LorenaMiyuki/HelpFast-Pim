@@ -31,5 +31,8 @@ namespace HelpFast_Pim.Models
 
         public DateTime? DataAbertura { get; set; }
         public DateTime? DataFechamento { get; set; }
+
+        // Navegação para Chats
+        public ICollection<Chat> Chats { get; set; } = new List<Chat>();
     }
 }

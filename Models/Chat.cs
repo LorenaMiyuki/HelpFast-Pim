@@ -26,5 +26,17 @@ namespace HelpFast_Pim.Models
 
         public string? Mensagem { get; set; }
         public DateTime DataEnvio { get; set; }
+
+        // Tipo de mensagem: "Usuario" ou "Assistente"
+        [MaxLength(50)]
+        public string? Tipo { get; set; } = "Usuario";
+
+        // Propriedade de alias para compatibilidade com views
+        [NotMapped]
+        public DateTime DataHora
+        {
+            get { return DataEnvio; }
+            set { DataEnvio = value; }
+        }
     }
 }

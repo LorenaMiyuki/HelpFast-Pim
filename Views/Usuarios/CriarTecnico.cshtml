@@ -1,0 +1,231 @@
+@{
+    Layout = "~/Views/Shared/_LayoutAdmin.cshtml";
+    ViewData["Title"] = "Novo Técnico";
+}
+
+<style>
+    body {
+        background: #161D28;
+        color: #fff;
+        font-family: "Segoe UI", Roboto, Arial, sans-serif;
+    }
+
+    .admin-page {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        padding: 40px 20px;
+        background: transparent;
+        flex-direction: column;
+    }
+
+    .admin-logo {
+        height: 180px;
+        width: auto;
+        margin-bottom: 30px;
+        display: block;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .admin-card {
+        background: transparent;
+        border-radius: 18px;
+        padding: 0;
+        width: 100%;
+        max-width: 650px;
+        color: #fff;
+        box-shadow: none;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .admin-header {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 0;
+    }
+
+    .admin-title {
+        display: block;
+    }
+
+    .form-container {
+        background: #1a2634;
+        border-radius: 16px;
+        padding: 0;
+        width: 100%;
+        box-sizing: border-box;
+        margin-bottom: 30px;
+    }
+
+    .form-title {
+        background: transparent;
+        border-radius: 16px 16px 0 0;
+        padding: 30px 40px;
+        text-align: center;
+        color: #fff;
+        font-size: 28px;
+        font-weight: 700;
+        margin: 0;
+    }
+
+    .form-content {
+        background: transparent;
+        border-radius: 0 0 16px 16px;
+        padding: 40px;
+    }
+
+    .form-group {
+        margin-bottom: 24px;
+    }
+
+    .form-group label {
+        display: block;
+        margin-bottom: 10px;
+        font-weight: 500;
+        font-size: 15px;
+        color: #ccc;
+    }
+
+    .form-group input {
+        width: 100%;
+        padding: 14px 16px;
+        border: 0;
+        border-radius: 999px;
+        font-size: 15px;
+        box-sizing: border-box;
+        background: #ffffff;
+        color: #111;
+    }
+
+    .form-group input::placeholder {
+        color: #999;
+    }
+
+    .form-group input:focus {
+        outline: 2px solid #4c6ef5;
+        outline-offset: 2px;
+    }
+
+    .buttons-container {
+        display: flex;
+        gap: 16px;
+        justify-content: center;
+        width: 100%;
+    }
+
+    .btn {
+        padding: 12px 36px;
+        border-radius: 8px;
+        border: 0;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-primary {
+        background: #ffffff;
+        color: #111;
+    }
+
+    .btn-primary:hover {
+        background: #f1f3f5;
+    }
+
+    .btn-secondary {
+        background: #ffffff;
+        color: #111;
+        border: 0;
+    }
+
+    .btn-secondary:hover {
+        background: #f1f3f5;
+    }
+
+    .alert {
+        padding: 12px 16px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        font-weight: 500;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .alert-danger {
+        background: #e8d5f0;
+        color: #5d3d7a;
+        border-left: 4px solid #5d3d7a;
+    }
+
+    @@media (max-width: 600px) {
+        .admin-card {
+            padding: 0;
+        }
+
+        .form-container {
+            padding: 24px;
+            border-radius: 12px;
+        }
+
+        .buttons-container {
+            flex-direction: column;
+        }
+
+        .btn {
+            width: 100%;
+        }
+
+        .admin-title {
+            font-size: 28px;
+        }
+    }
+</style>
+
+<div class="admin-page">
+    <img class="admin-logo" src="/images/logoh.png" alt="HelpFast" />
+    
+    <div class="admin-card">
+        @if (TempData["Erro"] != null)
+        {
+            <div class="alert alert-danger">
+                ⚠ @TempData["Erro"]
+            </div>
+        }
+
+        <div class="form-container">
+            <div class="form-title">Novo Técnico</div>
+            <div class="form-content">
+                <form method="post" action="@Url.Action("SalvarTecnico", "Usuarios")">
+                    <div class="form-group">
+                        <label for="nome">Nome do Técnico:</label>
+                        <input type="text" id="nome" name="nome" placeholder="Digite o nome:" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">E-mail do Técnico:</label>
+                        <input type="email" id="email" name="email" placeholder="Digite o e-mail:" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label for="telefone">Telefone do Técnico:</label>
+                        <input type="tel" id="telefone" name="telefone" placeholder="Digite o telefone:" required />
+                    </div>
+
+                    <div class="buttons-container">
+                        <a href="@Url.Action("Gerenciar", "Usuarios")" class="btn btn-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-primary">Salvar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>

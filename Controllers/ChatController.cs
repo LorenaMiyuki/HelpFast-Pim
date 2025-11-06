@@ -29,8 +29,17 @@ namespace HelpFast_Pim.Controllers
 
         // GET /Chat/Chat/{id}?motivo=xxx
         [HttpGet("Chat/{id}")]
-        public IActionResult ChatView(int id, string? motivo)
+        public async Task<IActionResult> ChatView(int id, string? motivo)
         {
+            // Verificar se o chamado existe e está finalizado
+            var chamado = await _db.Chamados.FirstOrDefaultAsync(c => c.Id == id);
+            
+            if (chamado != null && (chamado.Status == "Finalizado" || chamado.Status == "Cancelado"))
+            {
+                // Se está finalizado ou cancelado, redirecionar para a view de status
+                return RedirectToAction("ChamadoFinalizado", "Chamados", new { id = id });
+            }
+
             ViewBag.ChamadoNumericId = id;
             ViewBag.ChamadoId = id.ToString();
             ViewBag.Motivo = motivo ?? string.Empty;

@@ -4,6 +4,16 @@
     var nome = Model?.Nome ?? "Usuário";
     var cargoId = Model?.CargoId ?? 0;
 }
+
+<style>
+    html, body {
+        background: #0f1b23 !important;
+    }
+    .app-root, .app-content {
+        background: #0f1b23 !important;
+    }
+</style>
+
 <div class="card" style="width:420px;">
     <div class="card-inner" style="text-align:center;padding:36px 28px;">
         <div class="logo-wrap" style="margin-bottom:18px;">
@@ -21,13 +31,13 @@
         } else if (cargoId == 1) {
             <!-- Administrador -->
             <div style="display:flex;flex-direction:column;gap:18px;padding:12px 28px;">
-                <a asp-controller="Chamados" asp-action="Index" class="btn secondary small" style="padding:12px;border-radius:12px;">Visualizar chamados</a>
+                <a asp-controller="Chamados" asp-action="ChamadosAdmin" class="btn secondary small" style="padding:12px;border-radius:12px;">Visualizar chamados</a>
                 <a asp-controller="Usuarios" asp-action="Gerenciar" class="btn secondary small" style="padding:12px;border-radius:12px;">Gerenciar Usuários</a>
             </div>
         } else {
             <!-- Técnico (default) -->
             <div style="display:flex;flex-direction:column;gap:18px;padding:12px 28px;">
-                <a asp-controller="Chamados" asp-action="Atribuidos" class="btn secondary small" style="padding:12px;border-radius:12px;">Consultar chamados</a>
+                <a href="/Chamados/ConsultarChamados" class="btn secondary small" style="padding:12px;border-radius:12px;">Consultar chamados</a>
             </div>
         }
     </div>
