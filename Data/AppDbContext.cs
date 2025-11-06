@@ -7,7 +7,6 @@ namespace HelpFast_Pim.Data
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
-        // =================== DbSets ===================
         public DbSet<Usuario> Usuarios { get; set; }
         public DbSet<Cargo> Cargos { get; set; }
         public DbSet<Chamado> Chamados { get; set; }
@@ -16,13 +15,10 @@ namespace HelpFast_Pim.Data
         public DbSet<Chat> Chats { get; set; }
         public DbSet<ChatIaResult> ChatIaResults { get; set; }
 
-        // =================== Configurações ===================
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            // Schema padrão
             modelBuilder.HasDefaultSchema("dbo");
 
-            // Definições de tabelas
             modelBuilder.Entity<Usuario>().ToTable("Usuarios");
             modelBuilder.Entity<Cargo>().ToTable("Cargos");
             modelBuilder.Entity<Chamado>().ToTable("Chamados");
@@ -31,7 +27,6 @@ namespace HelpFast_Pim.Data
             modelBuilder.Entity<Chat>().ToTable("Chats");
             modelBuilder.Entity<ChatIaResult>().ToTable("ChatIaResults");
 
-            // =================== Usuario ===================
             modelBuilder.Entity<Usuario>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -48,7 +43,6 @@ namespace HelpFast_Pim.Data
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // =================== Cargo ===================
             modelBuilder.Entity<Cargo>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -56,7 +50,6 @@ namespace HelpFast_Pim.Data
                 entity.HasIndex(e => e.Nome).IsUnique();
             });
 
-            // =================== HistoricoChamado ===================
             modelBuilder.Entity<HistoricoChamado>(entity =>
             {
                 entity.ToTable("HistoricoChamados");
@@ -70,7 +63,6 @@ namespace HelpFast_Pim.Data
                     .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // =================== Chat ===================
             modelBuilder.Entity<Chat>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -82,26 +74,22 @@ namespace HelpFast_Pim.Data
                 entity.Property(e => e.DataEnvio)
                     .IsRequired();
 
-                // FK com Chamado
                 entity.HasOne(e => e.Chamado)
                     .WithMany()
                     .HasForeignKey(e => e.ChamadoId)
                     .OnDelete(DeleteBehavior.Cascade);
 
-                // FK com Usuario (Remetente) - sem cascade delete
                 entity.HasOne(e => e.Remetente)
                     .WithMany()
                     .HasForeignKey(e => e.RemetenteId)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // FK com Usuario (Destinatario) - sem cascade delete
                 entity.HasOne(e => e.Destinatario)
                     .WithMany()
                     .HasForeignKey(e => e.DestinatarioId)
                     .OnDelete(DeleteBehavior.Restrict);
             });
 
-            // =================== Faq ===================
             modelBuilder.Entity<Faq>(entity =>
             {
                 entity.HasKey(e => e.Id);
@@ -114,7 +102,6 @@ namespace HelpFast_Pim.Data
                     .HasMaxLength(1000);
             });
 
-            // =================== ChatIaResult ===================
             modelBuilder.Entity<ChatIaResult>(entity =>
             {
                 entity.HasKey(e => e.Id);

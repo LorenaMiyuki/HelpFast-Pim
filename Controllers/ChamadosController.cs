@@ -52,8 +52,6 @@ namespace HelpFast_Pim.Controllers
             _context.Chamados.Add(model);
             await _context.SaveChangesAsync();
 
-            // criar e então redirecionar o usuário para a tela de FAQ
-            // passa o id do chamado e motivo via querystring para a FAQ poder encaminhar ao chat
             return RedirectToAction("Faq", "Faqs", new { chamadoId = model.Id, motivo = model.Motivo });
         }
 
@@ -75,7 +73,7 @@ namespace HelpFast_Pim.Controllers
         [HttpGet("MeusChamados")]
         public async Task<IActionResult> MeusChamados()
         {
-            // requer usuário autenticado e retorna apenas os chamados do cliente
+
             var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrWhiteSpace(idClaim) || !int.TryParse(idClaim, out var userId))
                 return RedirectToAction("Login", "Account");
