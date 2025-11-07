@@ -1,0 +1,31 @@
+@model HelpFast_Pim.Models.Chamado
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Chamado Finalizado";
+}
+
+<style>
+    body { background:#161D28; color:#fff; font-family:"Segoe UI", Roboto, Arial, sans-serif; }
+  .page { min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:40px 16px; }
+  .card { width:100%; max-width:600px; background:#2a3a4a; border-radius:18px; padding:28px; box-shadow:0 10px 0 rgba(0,0,0,0.35); }
+  .logo-wrap { text-align:center; margin-bottom:22px; }
+  .logo-wrap img { height:120px; width:auto; }
+    .title { text-align:center; font-size:24px; margin:10px 0 22px; }
+    .pill { background:#fff; color:#111; border-radius:999px; padding:14px 18px; text-align:center; font-weight:600; width:fit-content; margin:0 auto 24px; }
+  .btns { display:flex; justify-content:center; gap:24px; width:100%; margin-top:36px; }
+  .btn { background:#ffffff; color:#101010; text-decoration:none; border-radius:10px; height:44px; padding:0 28px; font-size:14px; font-weight:600; display:inline-flex; align-items:center; justify-content:center; box-shadow:0 6px 18px rgba(0,0,0,0.22); width:220px; max-width:220px; }
+  .pill { margin-bottom:0; }
+  @@media (max-width:600px){ .card{padding:20px;} .pill{padding:12px 16px;} .btns{flex-direction:column; gap:14px; margin-top:28px;} .btn{width:100%; max-width:none;} }
+</style>
+
+<div class="page">
+  <div class="logo-wrap"><img src="/images/logoh.png" alt="HelpFast" /></div>
+  <div class="card">
+    <div class="title">Chamado ID: #@Model.Id</div>
+    <div class="pill">Chamado finalizado!</div>
+    <div class="btns">
+      <a class="btn" href="@Url.Action("Index","Home")">Voltar ao menu</a>
+      <a class="btn" href="@Url.Action("ConsultarChamados","Chamados")">Consultar chamados</a>
+    </div>
+  </div>
+</div>

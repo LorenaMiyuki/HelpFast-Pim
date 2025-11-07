@@ -58,12 +58,20 @@ namespace HelpFast_Pim.Controllers
         [HttpGet("Meus")]
         public async Task<IActionResult> Meus()
         {
+            // Desabilitar cache HTTP
+            Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+            Response.Headers["Pragma"] = "no-cache";
+            Response.Headers["Expires"] = "0";
+            
             var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrWhiteSpace(idClaim) || !int.TryParse(idClaim, out var userId))
                 return RedirectToAction("Login", "Account");
 
             var meus = await _context.Chamados
-                .Where(c => c.ClienteId == userId)
+                .AsNoTracking()
+                .Where(c => c.ClienteId == userId 
+                         && c.Status != "Finalizado" 
+                         && c.Status != "Cancelado")
                 .OrderByDescending(c => c.DataAbertura)
                 .ToListAsync();
 
@@ -73,13 +81,20 @@ namespace HelpFast_Pim.Controllers
         [HttpGet("MeusChamados")]
         public async Task<IActionResult> MeusChamados()
         {
+            // Desabilitar cache HTTP
+            Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+            Response.Headers["Pragma"] = "no-cache";
+            Response.Headers["Expires"] = "0";
 
             var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrWhiteSpace(idClaim) || !int.TryParse(idClaim, out var userId))
                 return RedirectToAction("Login", "Account");
 
             var chamados = await _context.Chamados
-                .Where(c => c.ClienteId == userId)
+                .AsNoTracking()
+                .Where(c => c.ClienteId == userId 
+                         && c.Status != "Finalizado" 
+                         && c.Status != "Cancelado")
                 .OrderByDescending(c => c.Id)
                 .ToListAsync();
 
@@ -99,7 +114,13 @@ namespace HelpFast_Pim.Controllers
         [HttpGet("ChamadosAdmin")]
         public async Task<IActionResult> ChamadosAdmin()
         {
+            // Desabilitar cache HTTP
+            Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+            Response.Headers["Pragma"] = "no-cache";
+            Response.Headers["Expires"] = "0";
+            
             var chamados = await _context.Chamados
+                .AsNoTracking()
                 .Where(c => c.Status == "Aberto" || c.Status == "Andamento")
                 .OrderByDescending(c => c.DataAbertura)
                 .ToListAsync();
@@ -111,8 +132,14 @@ namespace HelpFast_Pim.Controllers
         [HttpGet("VisualizarChamadoAdmin/{id}")]
         public async Task<IActionResult> VisualizarChamadoAdmin(int id)
         {
+            // Desabilitar cache HTTP
+            Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+            Response.Headers["Pragma"] = "no-cache";
+            Response.Headers["Expires"] = "0";
+            
             var chamado = await _context.Chamados
-                .Include(c => c.Chats)
+                .AsNoTracking()
+                .Include(c => c.Chats.OrderBy(ch => ch.DataEnvio))
                 .FirstOrDefaultAsync(c => c.Id == id);
 
             if (chamado == null) return NotFound();
@@ -164,16 +191,47 @@ namespace HelpFast_Pim.Controllers
             return View(chamado);
         }
 
-        // Técnico - Consultar chamados atribuídos
-        [HttpGet("ConsultarChamados")]
-        public async Task<IActionResult> ConsultarChamados()
+        // Técnico - Ver tela de finalização (layout específico)
+        [HttpGet("ChamadoFinalizadoTecnico/{id}")]
+        public async Task<IActionResult> ChamadoFinalizadoTecnico(int id)
         {
             var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrWhiteSpace(idClaim) || !int.TryParse(idClaim, out var userId))
                 return RedirectToAction("Login", "Account");
 
+            var chamado = await _context.Chamados.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
+            if (chamado == null) return NotFound();
+            if (chamado.TecnicoId != userId)
+            {
+                // Admins também podem visualizar
+                var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+                var isAdmin = roleClaim == "Administrador";
+                if (!isAdmin) return NotFound();
+            }
+            if (chamado.Status != "Finalizado") return RedirectToAction("ConsultarChamados");
+
+            return View("ChamadoFinalizadoTecnico", chamado);
+        }
+
+        // Técnico - Consultar chamados atribuídos
+        [HttpGet("ConsultarChamados")]
+        public async Task<IActionResult> ConsultarChamados()
+        {
+            // Desabilitar cache HTTP
+            Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+            Response.Headers["Pragma"] = "no-cache";
+            Response.Headers["Expires"] = "0";
+            
+            var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrWhiteSpace(idClaim) || !int.TryParse(idClaim, out var userId))
+                return RedirectToAction("Login", "Account");
+
+            // Forçar busca do banco de dados (sem cache do EF)
             var chamados = await _context.Chamados
-                .Where(c => c.TecnicoId == userId)
+                .AsNoTracking()
+                .Where(c => c.TecnicoId == userId 
+                         && c.Status != "Finalizado" 
+                         && c.Status != "Cancelado")
                 .OrderByDescending(c => c.DataAbertura)
                 .ToListAsync();
 
@@ -184,13 +242,23 @@ namespace HelpFast_Pim.Controllers
         [HttpGet("VisualizarChamadoTecnico/{id}")]
         public async Task<IActionResult> VisualizarChamadoTecnico(int id)
         {
+            // Desabilitar cache HTTP
+            Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+            Response.Headers["Pragma"] = "no-cache";
+            Response.Headers["Expires"] = "0";
+            
             var idClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrWhiteSpace(idClaim) || !int.TryParse(idClaim, out var userId))
                 return RedirectToAction("Login", "Account");
 
+            var roleClaim = User.FindFirst(ClaimTypes.Role)?.Value;
+            var isAdmin = roleClaim == "Administrador";
+
+            // Admin pode ver qualquer chamado, técnico só vê os atribuídos a ele
             var chamado = await _context.Chamados
-                .Include(c => c.Chats)
-                .FirstOrDefaultAsync(c => c.Id == id && c.TecnicoId == userId);
+                .AsNoTracking()
+                .Include(c => c.Chats.OrderBy(ch => ch.DataEnvio))
+                .FirstOrDefaultAsync(c => c.Id == id && (isAdmin || c.TecnicoId == userId));
 
             if (chamado == null) return NotFound();
 
@@ -234,7 +302,16 @@ namespace HelpFast_Pim.Controllers
             await _context.SaveChangesAsync();
 
             TempData["Sucesso"] = "Chamado concluído com sucesso!";
-            return RedirectToAction("ConsultarChamados");
+            return RedirectToAction("ChamadoFinalizadoTecnico", new { id });
+        }
+
+        // Status simples do chamado para polling nos chats
+        [HttpGet("Status/{id}")]
+        public async Task<IActionResult> GetStatus(int id)
+        {
+            var chamado = await _context.Chamados.AsNoTracking().FirstOrDefaultAsync(c => c.Id == id);
+            if (chamado == null) return NotFound(new { success = false, error = "Chamado não encontrado" });
+            return Ok(new { success = true, status = chamado.Status });
         }
     }
 }

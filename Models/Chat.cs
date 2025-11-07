@@ -24,7 +24,8 @@ namespace HelpFast_Pim.Models
         [ForeignKey(nameof(DestinatarioId))]
         public Usuario? Destinatario { get; set; }
 
-        public string? Mensagem { get; set; }
+    [MaxLength(4000)]
+    public string? Mensagem { get; set; }
         public DateTime DataEnvio { get; set; }
 
         // Tipo de mensagem: "Usuario" ou "Assistente"

@@ -22,6 +22,15 @@ namespace HelpFast_Pim.Data
             modelBuilder.Entity<Usuario>().ToTable("Usuarios");
             modelBuilder.Entity<Cargo>().ToTable("Cargos");
             modelBuilder.Entity<Chamado>().ToTable("Chamados");
+            // Índices de desempenho para consultas frequentes sobre Chamados
+            modelBuilder.Entity<Chamado>(entity =>
+            {
+                entity.HasIndex(c => c.ClienteId).HasDatabaseName("IX_Chamados_ClienteId");
+                entity.HasIndex(c => c.TecnicoId).HasDatabaseName("IX_Chamados_TecnicoId");
+                entity.HasIndex(c => c.Status).HasDatabaseName("IX_Chamados_Status");
+                entity.HasIndex(c => new { c.ClienteId, c.Status, c.DataAbertura }).HasDatabaseName("IX_Chamados_Cliente_Status_Data");
+                entity.HasIndex(c => new { c.TecnicoId, c.Status, c.DataAbertura }).HasDatabaseName("IX_Chamados_Tecnico_Status_Data");
+            });
             modelBuilder.Entity<HistoricoChamado>().ToTable("HistoricoChamados");
             modelBuilder.Entity<Faq>().ToTable("Faqs");
             modelBuilder.Entity<Chat>().ToTable("Chats");
@@ -69,13 +78,13 @@ namespace HelpFast_Pim.Data
 
                 entity.Property(e => e.Mensagem)
                     .IsRequired()
-                    .HasMaxLength(500);
+                    .HasMaxLength(4000);
 
                 entity.Property(e => e.DataEnvio)
                     .IsRequired();
 
                 entity.HasOne(e => e.Chamado)
-                    .WithMany()
+                    .WithMany(c => c.Chats)
                     .HasForeignKey(e => e.ChamadoId)
                     .OnDelete(DeleteBehavior.Cascade);
 
@@ -88,6 +97,9 @@ namespace HelpFast_Pim.Data
                     .WithMany()
                     .HasForeignKey(e => e.DestinatarioId)
                     .OnDelete(DeleteBehavior.Restrict);
+
+                    // Índice para acelerar listagem cronológica por chamado
+                    entity.HasIndex(e => new { e.ChamadoId, e.DataEnvio }).HasDatabaseName("IX_Chats_Chamado_DataEnvio");
             });
 
             modelBuilder.Entity<Faq>(entity =>

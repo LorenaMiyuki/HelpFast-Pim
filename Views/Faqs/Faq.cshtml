@@ -91,11 +91,11 @@
 			<!-- redireciona para a tela de Chat (pode receber id e assunto por query) -->
 			@if (ViewBag.ChamadoNumericId != null)
 			{
-				<a class="btn-primary-faq" href="@Url.Action("Index","Chat", new { id = ViewBag.ChamadoNumericId, assunto = ViewBag.Motivo })">Ir para o Chat</a>
+				<a class="btn-primary-faq" href="@Url.Action("ChatView","Chat", new { id = ViewBag.ChamadoNumericId, motivo = ViewBag.Motivo })">Ir para o Chat</a>
 			}
 			else
 			{
-				<a class="btn-primary-faq" href="@Url.Action("Index","Chat")">Ir para o Chat</a>
+				<a class="btn-primary-faq" href="@Url.Action("ChatView","Chat", new { id = 0, motivo = ViewBag.Motivo })">Ir para o Chat</a>
 			}
 		</div>
 	</div>
