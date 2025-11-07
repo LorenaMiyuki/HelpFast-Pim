@@ -135,6 +135,8 @@
 			let assignedToTech = false; // evita chamadas/avisos duplicados de transferência
 			let lastMaxId = 0;
 			const renderedIds = new Set();
+			let assistantResponseCount = 0; // Contador de respostas do assistente
+			const MAX_ASSISTANT_RESPONSES = 3; // Limite de respostas antes de transferir
 
 			function formatTime(date = new Date()){
 				const d = date;
@@ -235,7 +237,7 @@
 						setTimeout(() => {
 							messagesEl.scrollTop = messagesEl.scrollHeight;
 						}, 100);
-					} else {
+				} else {
 						console.log('Nenhuma mensagem no histórico, mantendo mensagem padrão');
 					}
 				} catch (e) {
@@ -282,7 +284,10 @@
 						console.log('Chamado tem técnico atribuído. Mensagem salva e será vista pelo técnico. Parando conversa com assistente.');
 						hasTechnician = true;
 						assignedToTech = true;
-						if (data.chatId) { lastMaxId = Math.max(lastMaxId, data.chatId); renderedIds.add(data.chatId); }
+						if (data.chatId) { 
+							lastMaxId = Math.max(lastMaxId, data.chatId); 
+							renderedIds.add(data.chatId); 
+						}
 						sending = false;
 						sendIcon.removeAttribute('disabled');
 						return;
@@ -291,16 +296,14 @@
 					// Se o servidor respondeu com processing:true, iniciar polling
 					if (data && data.processing && data.chatId) {
 						console.log('Iniciando polling para chatId:', data.chatId);
-						// registra id da mensagem do usuário para evitar duplicar na auto-atualização
-						lastMaxId = Math.max(lastMaxId, data.chatId); renderedIds.add(data.chatId);
+						lastMaxId = Math.max(lastMaxId, data.chatId); 
+						renderedIds.add(data.chatId);
 						
-						// Não exibe mais mensagem temporária de pensando
-
-						// Polling com timeout de 2 minutos e 30 segundos
 						const startTime = Date.now();
 						const timeout = 150000; // 150s
 						let found = false;
 						let tentativas = 0;
+						let isPolling = true;
 
 						// helper: atribui técnico e envia mensagem apenas uma vez
 						async function transferToTechnicianOnce(motivoTransferencia){
@@ -321,7 +324,7 @@
 
 						while ((Date.now() - startTime) < timeout && !found && !assignedToTech) {
 							tentativas++;
-							await new Promise(r => setTimeout(r, 800)); // aguardar 800ms entre tentativas
+							await new Promise(r => setTimeout(r, 800));
 							
 							try {
 								const pollRes = await fetch(`/Chat/AssistantReplyForChat/${data.chatId}`);
@@ -332,20 +335,30 @@
 								if (pollData && pollData.found && pollData.message && pollData.message.trim() !== '') {
 									console.log('Resposta encontrada!', pollData.message);
 									
-									// Sem placeholder para remover
-									
-										// Verificar se é "sem resposta"
-										const msgLower = pollData.message.toLowerCase();
-										if (msgLower.includes('sem resposta') || msgLower.includes('não consegui') || msgLower.includes('nao consegui')) {
-											console.log('IA não conseguiu responder, transferindo para técnico...');
-											await transferToTechnicianOnce('sem-resposta');
-										}
+									// Verificar se é "sem resposta"
+									const msgLower = pollData.message.toLowerCase();
+									if (msgLower.includes('sem resposta') || msgLower.includes('não consegui') || msgLower.includes('nao consegui')) {
+										console.log('IA não conseguiu responder, transferindo para técnico...');
+										await transferToTechnicianOnce('sem-resposta');
 									} else {
-										// Mostrar resposta normal - limpar quebras de linha extras
+										// Incrementar contador de respostas do assistente
+										assistantResponseCount++;
+										console.log(`Resposta do assistente ${assistantResponseCount}/${MAX_ASSISTANT_RESPONSES}`);
+										
+										// Mostrar resposta normal
 										const cleanMessage = pollData.message.trim();
 										console.log('Resposta limpa do assistente:', cleanMessage);
 										appendMessage('assistant', cleanMessage);
-										if (pollData.assistantChatId) { lastMaxId = Math.max(lastMaxId, pollData.assistantChatId); renderedIds.add(pollData.assistantChatId); }
+										if (pollData.assistantChatId) { 
+											lastMaxId = Math.max(lastMaxId, pollData.assistantChatId); 
+											renderedIds.add(pollData.assistantChatId); 
+										}
+
+										// Verificar se atingiu o limite de respostas
+										if (assistantResponseCount >= MAX_ASSISTANT_RESPONSES) {
+											console.log('Limite de respostas do assistente atingido, transferindo para técnico...');
+											await transferToTechnicianOnce('limite-respostas');
+										}
 									}
 									
 									found = true;
@@ -360,7 +373,8 @@
 							console.log('Timeout atingido - nenhuma resposta encontrada, transferindo para técnico');
 							await transferToTechnicianOnce('timeout');
 						}
-					}
+						
+						isPolling = false;
 					} else {
 						console.log('Resposta direta do servidor (sem polling necessário)');
 						const msg = (data && (data.reply || data.message || data.text)) || 'Sem resposta';
@@ -390,17 +404,23 @@
 
 			// Auto refresh: busca novas mensagens e adiciona apenas as com id maior
 			async function refreshLoop(){
-				if (!chamadoId) return;
+				if (!chamadoId || sending) return; // Não atualiza enquanto está enviando
 				try {
 					const res = await fetch(`/Chat/History/${chamadoId}`);
 					if (!res.ok) return;
 					const data = await res.json();
 					if (data && data.success && Array.isArray(data.messages)){
 						data.messages.forEach(m => {
-							const id = m.Id ?? m.id; if (!id) return; if (id <= lastMaxId) return; appendFromServer(m);
+							const id = m.Id ?? m.id; 
+							if (!id) return; 
+							if (renderedIds.has(id)) return; // Verifica se já foi renderizado
+							if (id <= lastMaxId) return; 
+							appendFromServer(m);
 						});
 					}
-				} catch {}
+				} catch (e) {
+					console.error('Erro no refreshLoop:', e);
+				}
 			}
 			const intervalId = setInterval(refreshLoop, 2000);
 			// status polling: finalizado/cancelado
