@@ -57,24 +57,14 @@ namespace HelpFast_Pim.Controllers
                     return RedirectToAction("CriarTecnico");
                 }
 
-                // Obter cargo "Técnico"
-                var cargoTecnico = await _db.Cargos.FirstOrDefaultAsync(c => c.Nome == "Técnico");
-                if (cargoTecnico == null)
-                {
-                    // Criar cargo se não existir
-                    cargoTecnico = new Cargo { Nome = "Técnico" };
-                    _db.Cargos.Add(cargoTecnico);
-                    await _db.SaveChangesAsync();
-                }
-
-                // Criar usuário
+                // Criar usuário com CargoId = 2 (Técnico)
                 var usuario = new Usuario
                 {
                     Nome = nome,
                     Email = email,
                     Telefone = telefone,
                     Senha = Guid.NewGuid().ToString(),
-                    CargoId = cargoTecnico.Id
+                    CargoId = 2  // ID do cargo Técnico
                 };
 
                 _db.Usuarios.Add(usuario);

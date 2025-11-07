@@ -48,12 +48,9 @@ namespace HelpFast_Pim
 
             // registrar serviço de usuário (garante que o tipo seja encontrado)
             builder.Services.AddScoped<IUsuarioService, UsuarioService>();
-<<<<<<< HEAD
-            // registrar serviço para Chat IA results (webhook)
-=======
+
             // registrar serviços de chat e resultados da IA
             builder.Services.AddScoped<IChatService, ChatService>();
->>>>>>> 62fdcefa2d6fd5eba8359d2833967e5c8be7df22
             builder.Services.AddScoped<IChatIaResultService, ChatIaResultService>();
 
             // Authentication - cookie
@@ -78,6 +75,15 @@ namespace HelpFast_Pim
                 app.UseHttpsRedirection();
             }
             app.UseStaticFiles();
+
+            // Middleware para desabilitar cache HTTP em todas as requisições
+            app.Use(async (context, next) =>
+            {
+                context.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
+                context.Response.Headers["Pragma"] = "no-cache";
+                context.Response.Headers["Expires"] = "0";
+                await next();
+            });
 
             app.UseRouting();
 

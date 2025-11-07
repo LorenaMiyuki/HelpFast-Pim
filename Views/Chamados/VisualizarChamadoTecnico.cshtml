@@ -6,131 +6,177 @@
 
 <style>
     body { background: #0f1b23; }
-    /* estilo ajustado para ficar similar ao protótipo */
-    .chat-page { display:flex; justify-content:center; padding:40px 0; background:transparent; }
-    .chat-card {
-        background:#13202a; border-radius:18px; padding:28px; width:760px; color:#fff; box-shadow:0 10px 0 rgba(0,0,0,0.4);
-    }
+    .chat-page { display:flex; flex-direction:column; align-items:center; padding:40px 0; }
+    .chat-card { background:#13202a; border-radius:18px; padding:28px; width:760px; color:#fff; box-shadow:0 10px 0 rgba(0,0,0,0.4); }
     .header { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:18px; }
-    .header .logo { height:78px; }
     .header .meta { color:#fff; font-size:15px; }
     .header .meta strong { margin-right:10px; font-weight:600; }
 
-    .chat-inner {
-        background:#ffffff; color:#111; border-radius:12px; padding:18px; height:420px;
-        display:flex; flex-direction:column; overflow:hidden;
-    }
-    .messages {
-        flex:1; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:12px;
-        word-wrap:break-word; white-space:pre-wrap;
-    }
-    .msg {
-        max-width:66%; padding:10px 12px; border-radius:10px; font-size:13px; line-height:1.2;
-        position:relative;
-        box-shadow: 0 1px 0 rgba(0,0,0,0.04);
-        overflow-wrap:break-word;
-    }
-    .msg .meta-time { position:absolute; right:10px; top:6px; font-size:11px; color:#666; }
-    .msg.assistant {
-        background:#dcdcdc; color:#000; align-self:flex-start; border-bottom-left-radius:6px;
-    }
-    .msg.client {
-        background:#bfc6cc; color:#000; align-self:flex-end; border-bottom-right-radius:6px;
-    }
+    .chat-inner { background:#ffffff; color:#111; border-radius:12px; padding:18px; height:420px; display:flex; flex-direction:column; overflow:hidden; }
+    .messages { flex:1; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:12px; word-wrap:break-word; white-space:pre-wrap; }
+    .msg-row { display:flex; flex-direction:column; gap:4px; }
+    .msg-row.left { align-items:flex-start; }
+    .msg-row.right { align-items:flex-end; }
+    .msg-row .meta-time { font-size:11px; color:#666; margin:0 6px; }
+    .msg { max-width:66%; border-radius:10px; font-size:13px; line-height:1.2; position:relative; display:inline-block; width:fit-content; padding:10px 12px; box-shadow:0 1px 0 rgba(0,0,0,0.04); overflow-wrap:break-word; }
+    .msg.assistant { background:#dcdcdc; color:#000; align-self:flex-start; border-bottom-left-radius:6px; }
+    .msg.client { background:#bfc6cc; color:#000; align-self:flex-end; border-bottom-right-radius:6px; }
 
-    .tech-actions {
-        display:flex; gap:10px; justify-content:flex-end;
-    }
-    .btn-action-tech {
-        display:inline-flex; align-items:center; justify-content:center;
-        width:32px; height:32px; border-radius:6px; border:0;
-        cursor:pointer; background:#e0e4eb; color:#333; transition:all 0.3s ease;
-    }
-    .btn-action-tech:hover { background:#d0dce8; }
-
+    .input-bar { display:flex; align-items:center; gap:8px; margin-top:14px; }
+    .input-wrap { flex:1; background:#f1f3f5; border-radius:999px; padding:8px 12px; display:flex; align-items:center; gap:8px; }
+    .chat-input { flex:1; border:0; outline:none; background:transparent; font-size:14px; color:#111; }
+    .btn-round { width:36px; height:36px; display:inline-flex; align-items:center; justify-content:center; border-radius:50%; background:#fff; color:#333; cursor:pointer; border:0; }
     .back-btn { display:block; margin:18px auto 0; background:#fff; color:#000; padding:10px 28px; border-radius:8px; text-decoration:none; text-align:center; width:220px; }
-
-    @@media (max-width:760px) {
-        .chat-card { width:94%; padding:16px; }
-        .header .logo { height:56px; }
-        .header { flex-wrap:wrap; }
-        .tech-actions { width:100%; margin-top:10px; }
-    }
+    .tech-actions { display:flex; gap:10px; }
+    .btn-action-tech { width:32px; height:32px; border-radius:6px; border:0; background:#e0e4eb; color:#333; display:inline-flex; align-items:center; justify-content:center; cursor:pointer; }
+    .btn-action-tech:hover { background:#d0dce8; }
+    @@media (max-width:760px){ .chat-card{ width:94%; padding:16px;} .header{ flex-wrap:wrap;} }
 </style>
 
 <div class="chat-page">
+    <!-- Logo fora e maior no topo -->
+    <div style="text-align:center; margin-bottom:14px;"><img src="/images/logoh.png" alt="HelpFast" style="height:96px; width:auto;" /></div>
     <div class="chat-card">
-        <div class="header">
-            <div style="display:flex; align-items:center; gap:18px;">
-                <img class="logo" src="/images/logoh.png" alt="HelpFast" />
-                <div class="meta">
-                    <div><strong>ID Chamado:</strong> <span>#@Model.Id</span></div>
-                    <div style="margin-top:6px;"><strong>Motivo:</strong> <span>@Model.Motivo</span></div>
-                </div>
-            </div>
-            <div class="tech-actions">
+        <div class="header" style="justify-content:space-between; align-items:center;">
+            <div class="meta"><strong>ID Chamado:</strong> <span>#@Model.Id</span></div>
+            <div class="meta" style="display:flex; gap:14px; align-items:center;">
+                <div><strong>Motivo:</strong> <span>@Model.Motivo</span></div>
+                <div class="tech-actions">
                 @if (Model.Status != "Finalizado" && Model.Status != "Cancelado")
                 {
                     <form method="POST" action="/Chamados/CancelarChamadoTecnico/@Model.Id" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja CANCELAR este chamado?');">
-                        <button type="submit" class="btn-action-tech" title="Cancelar Chamado">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="15" y1="9" x2="9" y2="15"></line>
-                                <line x1="9" y1="9" x2="15" y2="15"></line>
-                            </svg>
+                        <button type="submit" class="btn-action-tech" title="Cancelar">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="5" x2="19" y2="19"></line><line x1="19" y1="5" x2="5" y2="19"></line></svg>
                         </button>
                     </form>
                     <form method="POST" action="/Chamados/ConcluirChamadoTecnico/@Model.Id" style="display: inline;" onsubmit="return confirm('Tem certeza que deseja FINALIZAR este chamado?');">
-                        <button type="submit" class="btn-action-tech" title="Finalizar Chamado">
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="20 6 9 17 4 12"></polyline>
-                            </svg>
+                        <button type="submit" class="btn-action-tech" title="Concluir">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
                         </button>
                     </form>
                 }
+                </div>
             </div>
         </div>
 
-        <div class="chat-inner" id="chat-root">
+        <div class="chat-inner" id="chat-root" data-chamado-id="@Model.Id">
             <div class="messages" id="messages" aria-live="polite" aria-atomic="false">
-                @if (Model.Chats == null || Model.Chats.Count == 0)
-                {
-                    <div style="color:#999; text-align:center; padding:20px;">
-                        <p>Nenhuma mensagem neste chamado.</p>
+                <div style="color:#999; text-align:center; padding:20px;">Carregando mensagens...</div>
+            </div>
+            @if (Model.Status == "Andamento" || Model.Status == "Aberto")
+            {
+                <div class="input-bar">
+                    <div class="input-wrap">
+                        <input id="tech-input" class="chat-input" placeholder="Responder ao cliente..." />
+                        <button type="button" id="tech-send" class="btn-round" title="Enviar">✈</button>
                     </div>
-                }
-                else
-                {
-                    @foreach (var chat in Model.Chats.OrderBy(c => c.DataEnvio))
-                    {
-                        <div class="msg @(chat.Tipo == "Usuario" ? "client" : "assistant")">
-                            <div>
-                                @if (chat.Tipo == "Usuario")
-                                {
-                                    <div><strong>Cliente</strong></div>
-                                }
-                                else
-                                {
-                                    <div><strong>@(chat.Tipo ?? "Sistema")</strong></div>
-                                }
-                                <div>@chat.Mensagem</div>
-                                <div class="meta-time">@chat.DataEnvio.ToString("HH:mm")</div>
-                            </div>
-                        </div>
-                    }
-                }
+                </div>
+            }
+            <div id="status-overlay" style="display:none; position:absolute; inset:0; background:rgba(19,32,42,0.96); color:#fff; border-radius:12px; padding:24px; align-items:center; justify-content:center; text-align:center;">
+                <div>
+                    <img src="/images/logoh.png" alt="HelpFast" style="height:80px; width:auto; margin-bottom:16px;" />
+                    <div id="status-text" style="font-size:20px; font-weight:700;">Chamado finalizado!</div>
+                </div>
             </div>
         </div>
 
-        <a class="back-btn" href="/Chamados/ConsultarChamados">Voltar ao menu</a>
+        @if (User.IsInRole("Administrador"))
+        {
+            <a class="back-btn" href="/Chamados/ChamadosAdmin">Voltar ao menu</a>
+        }
+        else
+        {
+            <a class="back-btn" href="/Chamados/ConsultarChamados">Voltar ao menu</a>
+        }
     </div>
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        var messagesEl = document.getElementById('messages');
-        if (messagesEl) {
-            messagesEl.scrollTop = messagesEl.scrollHeight;
-        }
-    });
+document.addEventListener('DOMContentLoaded', async function(){
+    const root = document.getElementById('chat-root');
+    const messagesEl = document.getElementById('messages');
+    const inputEl = document.getElementById('tech-input');
+    const sendBtn = document.getElementById('tech-send');
+    if (!root || !messagesEl) return;
+    const chamadoId = root.dataset.chamadoId;
+    let lastMaxId = 0; const rendered = new Set();
+
+    function format(dt){ return dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+    function append(tipo, texto, dataEnvio, id){
+        const bubble = document.createElement('div');
+        bubble.className = 'msg ' + (tipo === 'Tecnico' ? 'client' : 'assistant');
+        const strong = document.createElement('div');
+        const label = tipo === 'Usuario' ? 'Cliente' : (tipo === 'Tecnico' ? 'Técnico' : 'Assistente');
+        strong.innerHTML = `<strong>${label}</strong>`;
+        const body = document.createElement('div'); body.innerText = texto;
+        bubble.appendChild(strong); bubble.appendChild(body);
+        const row = document.createElement('div');
+        row.className = 'msg-row ' + (tipo === 'Tecnico' ? 'right' : 'left');
+        if (id) { row.dataset.msgId = id; rendered.add(id); lastMaxId = Math.max(lastMaxId, id); }
+        const timeTop = document.createElement('div'); timeTop.className='meta-time'; timeTop.innerText = format(new Date(dataEnvio));
+        row.appendChild(timeTop); row.appendChild(bubble); messagesEl.appendChild(row);
+        setTimeout(()=>{ messagesEl.scrollTop = messagesEl.scrollHeight; },0);
+    }
+
+    async function load(){
+        try {
+            const res = await fetch(`/Chat/History/${chamadoId}`);
+            const data = await res.json();
+            messagesEl.innerHTML='';
+            if (data.success && Array.isArray(data.messages) && data.messages.length){
+                data.messages.forEach(m=>{
+                    const id = m.Id ?? m.id; if (id && rendered.has(id)) return;
+                    const tipo = m.Tipo ?? m.tipo; const mensagem = m.Mensagem ?? m.mensagem; const dataEnvio = m.DataEnvio ?? m.dataEnvio;
+                    append(tipo, mensagem, dataEnvio, id);
+                });
+                const maxIdNow = Math.max.apply(null, data.messages.map(m => m.Id ?? m.id)); if (Number.isFinite(maxIdNow)) lastMaxId = maxIdNow;
+            } else {
+                messagesEl.innerHTML = '<div style="color:#999; text-align:center; padding:20px;">Nenhuma mensagem neste chamado.</div>';
+            }
+        } catch { messagesEl.innerHTML = '<div style="color:#999; text-align:center; padding:20px;">Erro ao carregar mensagens</div>'; }
+    }
+
+    await load();
+
+    async function send(){
+        if (!inputEl) return; const text = inputEl.value.trim(); if(!text) return;
+        const payload = { message: text, chamadoId: parseInt(chamadoId,10) };
+        try {
+            const res = await fetch('/Chat/TechnicianSend', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) });
+            const data = await res.json();
+            if (data.success){ append('Tecnico', text, new Date(), data.chatId); inputEl.value=''; }
+        } catch(e){ console.error('Erro ao enviar tecnico', e); }
+    }
+    if (sendBtn){ sendBtn.addEventListener('click', send); }
+    if (inputEl){ inputEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); send(); } }); }
+
+    // Auto refresh loop
+    async function refresh(){
+        try{
+            const r = await fetch(`/Chat/History/${chamadoId}`); if(!r.ok) return; const d = await r.json();
+            if (d && d.success && Array.isArray(d.messages)){
+                d.messages.forEach(m=>{ const id = m.Id ?? m.id; if (!id || id<=lastMaxId || rendered.has(id)) return; append(m.Tipo??m.tipo, m.Mensagem??m.mensagem, m.DataEnvio??m.dataEnvio, id); });
+            }
+        }catch{}
+    }
+    const timer = setInterval(refresh, 2000);
+
+    // Status polling
+    const overlay = document.getElementById('status-overlay');
+    const statusText = document.getElementById('status-text');
+    async function statusLoop(){
+        try{
+            const r = await fetch(`/Chamados/Status/${chamadoId}`); if(!r.ok) return; const d = await r.json();
+            if (d && d.success && typeof d.status === 'string'){
+                if (d.status === 'Finalizado'){
+                    overlay.style.display = 'flex'; statusText.innerText = 'Chamado finalizado!';
+                } else if (d.status === 'Cancelado'){
+                    window.location.href = '/Chamados/ConsultarChamados';
+                }
+            }
+        }catch{}
+    }
+    const st = setInterval(statusLoop, 2000);
+    window.addEventListener('beforeunload',()=>{ clearInterval(timer); clearInterval(st); });
+});
 </script>

@@ -5,7 +5,7 @@
 }
 <style>
 	/* estilo ajustado para ficar similar ao protótipo */
-	.chat-page { display:flex; justify-content:center; padding:40px 0; background:transparent; }
+	.chat-page { display:flex; flex-direction:column; align-items:center; padding:40px 0; background:transparent; }
 	.chat-card {
 		background:#13202a; border-radius:18px; padding:28px; width:760px; color:#fff; box-shadow:0 10px 0 rgba(0,0,0,0.4);
 	}
@@ -16,20 +16,24 @@
 
 	.chat-inner {
 		background:#ffffff; color:#111; border-radius:12px; padding:18px; height:420px;
-		display:flex; flex-direction:column; overflow:hidden;
+		display:flex; flex-direction:column; overflow:hidden; position:relative; z-index:1;
 	}
 	.messages {
 		flex:1; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:12px;
-		/* garante que mensagens longas quebrem linha e o balão ajuste a altura */
-		word-wrap:break-word; white-space:pre-wrap;
+		word-wrap:break-word; white-space:pre-wrap; position:relative; z-index:2;
 	}
+	/* linha com data/hora acima e bolha abaixo */
+	.msg-row { display:flex; flex-direction:column; gap:4px; }
+	.msg-row.left { align-items:flex-start; }
+	.msg-row.right { align-items:flex-end; }
+	.msg-row .meta-time { font-size:11px; color:#666; margin:0 6px; }
 	.msg {
-		max-width:66%; padding:10px 12px; border-radius:10px; font-size:13px; line-height:1.2;
-		position:relative;
+		max-width:66%; border-radius:10px; font-size:13px; line-height:1.2;
+		position:relative; display:inline-block; width:fit-content;
+		padding:10px 12px;
 		box-shadow: 0 1px 0 rgba(0,0,0,0.04);
 		overflow-wrap:break-word;
 	}
-	.msg .meta-time { position:absolute; right:10px; top:6px; font-size:11px; color:#666; }
 	.msg.assistant {
 		background:#dcdcdc; color:#000; align-self:flex-start; border-bottom-left-radius:6px;
 	}
@@ -58,13 +62,17 @@
 </style>
 
 <div class="chat-page">
+	<!-- Logo maior fora do card -->
+	<div style="text-align:center; margin-bottom:14px;">
+		<img src="/images/logoh.png" alt="HelpFast" style="height:96px; width:auto;" />
+	</div>
 	<div class="chat-card">
-		<div class="header">
-			<img class="logo" src="/images/logoh.png" alt="HelpFast" />
-			<div class="meta">
+		<!-- Cabeçalho com ID à esquerda e Motivo à direita -->
+		<div class="header" style="justify-content:space-between;">
+			<div class="meta" style="display:flex; gap:18px; align-items:center;">
 				<div><strong>ID Chamado:</strong> <span>@ViewBag.ChamadoId</span></div>
-				<div style="margin-top:6px;"><strong>Motivo:</strong> <span>@ViewBag.Motivo</span></div>
 			</div>
+			<div class="meta" style="text-align:right;"><strong>Motivo:</strong> <span>@ViewBag.Motivo</span></div>
 		</div>
  
  		<!-- root com dados do chamado disponíveis para o JS -->
@@ -75,18 +83,22 @@
 				<!-- mensagem inicial: usa resposta retornada pelo controller (ViewBag.InitialBotMessage) quando disponível -->
 				@if (!string.IsNullOrEmpty((string?)ViewBag.InitialBotMessage))
 				{
-					<div class="msg assistant">
-						<div><strong>Assistente</strong></div>
-						<div>@ViewBag.InitialBotMessage</div>
-						<div class="meta-time">@DateTime.Now.ToString("HH:mm")</div>
+					<div class="msg-row left">
+						<div class="meta-time">@DateTime.Now.ToString("dd/MM/yyyy HH:mm")</div>
+						<div class="msg assistant">
+							<div><strong>Assistente</strong></div>
+							<div>@ViewBag.InitialBotMessage</div>
+						</div>
 					</div>
 				}
 				else
 				{
-					<div class="msg assistant">
-						<div><strong>Assistente</strong></div>
-						<div>Olá, sou o Assistente Virtual do Help Fast. Como posso te ajudar?</div>
-						<div class="meta-time">@DateTime.Now.ToString("HH:mm")</div>
+					<div class="msg-row left">
+						<div class="meta-time">@DateTime.Now.ToString("dd/MM/yyyy HH:mm")</div>
+						<div class="msg assistant">
+							<div><strong>Assistente</strong></div>
+							<div>Olá, sou o Assistente Virtual do Help Fast. Como posso te ajudar?</div>
+						</div>
 					</div>
 				}
 			</div>
@@ -105,7 +117,7 @@
 
 @section Scripts {
 	<script>
-		document.addEventListener('DOMContentLoaded', function(){
+		document.addEventListener('DOMContentLoaded', async function(){
 			const webhookUrl = '/Chat/Send';
 			const root = document.getElementById('chat-root');
 			const messagesEl = document.getElementById('messages');
@@ -119,27 +131,126 @@
 
 			const chamadoId = root.dataset.chamadoId || null;
 			const motivo = root.dataset.motivo || '';
+			let hasTechnician = false;
+			let assignedToTech = false; // evita chamadas/avisos duplicados de transferência
+			let lastMaxId = 0;
+			const renderedIds = new Set();
 
 			function formatTime(date = new Date()){
-				return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+				const d = date;
+				return d.toLocaleDateString('pt-BR') + ' ' + d.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
 			}
 
 			function appendMessage(type, text){
-				const wrapper = document.createElement('div');
-				wrapper.className = 'msg ' + (type === 'me' ? 'client' : 'assistant');
+				const bubble = document.createElement('div');
+				bubble.className = 'msg ' + (type === 'me' ? 'client' : 'assistant');
 				const strong = document.createElement('div');
 				strong.innerHTML = type === 'me' ? '<strong>Você</strong>' : '<strong>Assistente</strong>';
 				const body = document.createElement('div');
 				body.innerText = text;
-				const time = document.createElement('div');
-				time.className = 'meta-time';
-				time.innerText = formatTime();
-				wrapper.appendChild(strong);
-				wrapper.appendChild(body);
-				wrapper.appendChild(time);
-				messagesEl.appendChild(wrapper);
-				messagesEl.scrollTop = messagesEl.scrollHeight;
+				bubble.appendChild(strong);
+				bubble.appendChild(body);
+
+				const row = document.createElement('div');
+				row.className = 'msg-row ' + (type === 'me' ? 'right' : 'left');
+				const timeTop = document.createElement('div');
+				timeTop.className = 'meta-time';
+				timeTop.innerText = formatTime();
+				row.appendChild(timeTop);
+				row.appendChild(bubble);
+				messagesEl.appendChild(row);
+				
+				// Scroll suave para o final
+				setTimeout(() => {
+					messagesEl.scrollTop = messagesEl.scrollHeight;
+				}, 0);
 			}
+
+			function appendFromServer(msg){
+				const id = msg.Id ?? msg.id; if (id && renderedIds.has(id)) return;
+				const tipo = msg.Tipo ?? msg.tipo;
+				const mensagem = msg.Mensagem ?? msg.mensagem;
+				const dataEnvio = msg.DataEnvio ?? msg.dataEnvio;
+				if (!tipo || !mensagem) return;
+
+				const bubble = document.createElement('div');
+				bubble.className = 'msg ' + (tipo === 'Usuario' ? 'client' : 'assistant');
+				const strong = document.createElement('div');
+				const whoLabel = (tipo === 'Usuario') ? 'Você' : (tipo === 'Tecnico' ? 'Técnico' : 'Assistente');
+				strong.innerHTML = `<strong>${whoLabel}</strong>`;
+				const body = document.createElement('div');
+				body.innerText = mensagem;
+				bubble.appendChild(strong);
+				bubble.appendChild(body);
+
+				const row = document.createElement('div');
+				row.className = 'msg-row ' + (tipo === 'Usuario' ? 'right' : 'left');
+				row.dataset.msgId = id;
+				const timeTop = document.createElement('div');
+				timeTop.className = 'meta-time';
+				const dt = new Date(dataEnvio);
+				timeTop.innerText = dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+				row.appendChild(timeTop);
+				row.appendChild(bubble);
+				messagesEl.appendChild(row);
+
+				if (id) { renderedIds.add(id); lastMaxId = Math.max(lastMaxId, id); }
+				setTimeout(() => { messagesEl.scrollTop = messagesEl.scrollHeight; }, 0);
+			}
+
+			// Carregar histórico ao abrir a página (somente ao carregar, não depois)
+			async function loadHistory() {
+				if (!chamadoId || chamadoId === '') {
+					console.log('Sem chamadoId, pulando carregamento de histórico');
+					return;
+				}
+				
+				try {
+					console.log('Carregando histórico para chamadoId:', chamadoId);
+					const res = await fetch(`/Chat/History/${chamadoId}`);
+					if (!res.ok) {
+						console.log('Erro na requisição do histórico:', res.status);
+						return;
+					}
+					
+					const data = await res.json();
+					console.log('Dados do histórico recebidos:', data);
+					
+					if (data.success && data.messages && data.messages.length > 0) {
+						console.log('Carregando histórico, total de mensagens:', data.messages.length);
+						// Limpar TODAS as mensagens (incluindo a padrão "Olá...")
+						messagesEl.innerHTML = '';
+						
+						// Recarregar com histórico
+						data.messages.forEach(msg => appendFromServer(msg));
+
+						// Verificar se já tem técnico pelo histórico (se houver tipo explícito)
+						hasTechnician = data.messages.some(m => (m.Tipo ?? m.tipo) === 'Tecnico');
+						if (hasTechnician) assignedToTech = true;
+						// Inicializar lastMaxId
+						const maxIdNow = Math.max.apply(null, data.messages.map(m => m.Id ?? m.id));
+						if (Number.isFinite(maxIdNow)) lastMaxId = maxIdNow;
+						
+						// Scroll para o final
+						setTimeout(() => {
+							messagesEl.scrollTop = messagesEl.scrollHeight;
+						}, 100);
+					} else {
+						console.log('Nenhuma mensagem no histórico, mantendo mensagem padrão');
+					}
+				} catch (e) {
+					console.error('Erro ao carregar histórico:', e);
+				}
+			}
+
+			// Flag para controlar carregamento
+			let historyLoaded = false;
+			let initialMessageShown = true;
+
+			// Carregar histórico uma única vez ao inicializar
+			await loadHistory();
+			historyLoaded = true;
+			console.log('Histórico carregado, historyLoaded =', historyLoaded);
 
 			let sending = false;
 			async function sendMessage(){
@@ -147,7 +258,6 @@
 				const text = inputEl.value.trim();
 				if (!text) return;
 
-				// feedback imediato
 				appendMessage('me', text);
 				inputEl.value = '';
 
@@ -156,58 +266,109 @@
 
 				try {
 					const payload = { message: text, chamadoId: chamadoId ? parseInt(chamadoId,10) : null, motivo: motivo };
-					const res = await fetch(webhookUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+					console.log('Enviando payload:', payload);
+					
+					const res = await fetch(webhookUrl, { 
+						method: 'POST', 
+						headers: { 'Content-Type': 'application/json' }, 
+						body: JSON.stringify(payload) 
+					});
 
-					let replyText = '';
-					try {
-						const ct = res.headers.get('content-type') || '';
-						let data = null;
-						if (ct.indexOf('application/json') !== -1) {
-							data = await res.json();
-						} else {
-							const txt = await res.text();
-							try { data = JSON.parse(txt); } catch(e){ data = { text: txt }; }
-						}
+					const data = await res.json();
+					console.log('Resposta do servidor:', data);
 
-						// If the server responded with processing:true, poll for the assistant reply
-						if (data && data.processing && data.chatId) {
-							// show a small 'processing' indicator instead of the workflow text
-							appendMessage('assistant', 'Aguarde enquanto processamos sua solicitação...');
-							// poll endpoint until assistant message appears (timeout 20s)
-							const start = Date.now();
-							let found = false;
-							while (Date.now() - start < 20000 && !found) {
-								await new Promise(r => setTimeout(r, 1500));
+					// Se tem técnico atribuído, não precisa fazer polling
+					if (data && data.hasTechnician) {
+						console.log('Chamado tem técnico atribuído. Mensagem salva e será vista pelo técnico. Parando conversa com assistente.');
+						hasTechnician = true;
+						assignedToTech = true;
+						if (data.chatId) { lastMaxId = Math.max(lastMaxId, data.chatId); renderedIds.add(data.chatId); }
+						sending = false;
+						sendIcon.removeAttribute('disabled');
+						return;
+					}
+
+					// Se o servidor respondeu com processing:true, iniciar polling
+					if (data && data.processing && data.chatId) {
+						console.log('Iniciando polling para chatId:', data.chatId);
+						// registra id da mensagem do usuário para evitar duplicar na auto-atualização
+						lastMaxId = Math.max(lastMaxId, data.chatId); renderedIds.add(data.chatId);
+						
+						// Não exibe mais mensagem temporária de pensando
+
+						// Polling com timeout de 2 minutos e 30 segundos
+						const startTime = Date.now();
+						const timeout = 150000; // 150s
+						let found = false;
+						let tentativas = 0;
+
+						// helper: atribui técnico e envia mensagem apenas uma vez
+						async function transferToTechnicianOnce(motivoTransferencia){
+							if (assignedToTech) return;
+							appendMessage('assistant', 'Estamos te transferindo para um Técnico, aguarde um momento.');
+							if (chamadoId) {
 								try {
-									const pollRes = await fetch(`/Chat/AssistantReplyForChat/${data.chatId}`);
-									if (!pollRes.ok) continue;
-									const pollData = await pollRes.json();
-									if (pollData && pollData.found && pollData.message) {
-										// remove the last processing message and append actual assistant message
-										const last = messagesEl.lastElementChild;
-										if (last && last.innerText.indexOf('Aguarde enquanto processamos') !== -1) {
-											messagesEl.removeChild(last);
-										}
-										appendMessage('assistant', pollData.message);
-										found = true;
-										break;
+									const assignRes = await fetch(`/Chat/AssignToTechnician/${chamadoId}`, { method: 'POST' });
+									const assignData = await assignRes.json();
+									if (assignData.success) {
+										console.log('Chamado atribuído ao técnico (motivo:', motivoTransferencia, '):', assignData.tecnicoNome);
+										assignedToTech = true;
+										hasTechnician = true;
 									}
-								} catch (e) { /* ignore and retry */ }
+								} catch (e) { console.error('Erro ao atribuir técnico:', e); }
 							}
-							if (!found) {
-								// if not found, show generic fallback
-								appendMessage('assistant', '(sem resposta no momento)');
-							}
-						} else {
-							replyText = (data && (data.reply || data.message || data.text)) || JSON.stringify(data);
-							appendMessage('assistant', replyText || '(sem resposta)');
 						}
-					} catch (e) {
-						appendMessage('bot', '(sem resposta)');
+
+						while ((Date.now() - startTime) < timeout && !found && !assignedToTech) {
+							tentativas++;
+							await new Promise(r => setTimeout(r, 800)); // aguardar 800ms entre tentativas
+							
+							try {
+								const pollRes = await fetch(`/Chat/AssistantReplyForChat/${data.chatId}`);
+								const pollData = await pollRes.json();
+								
+								console.log(`Tentativa ${tentativas}:`, pollData);
+
+								if (pollData && pollData.found && pollData.message && pollData.message.trim() !== '') {
+									console.log('Resposta encontrada!', pollData.message);
+									
+									// Sem placeholder para remover
+									
+										// Verificar se é "sem resposta"
+										const msgLower = pollData.message.toLowerCase();
+										if (msgLower.includes('sem resposta') || msgLower.includes('não consegui') || msgLower.includes('nao consegui')) {
+											console.log('IA não conseguiu responder, transferindo para técnico...');
+											await transferToTechnicianOnce('sem-resposta');
+										}
+									} else {
+										// Mostrar resposta normal - limpar quebras de linha extras
+										const cleanMessage = pollData.message.trim();
+										console.log('Resposta limpa do assistente:', cleanMessage);
+										appendMessage('assistant', cleanMessage);
+										if (pollData.assistantChatId) { lastMaxId = Math.max(lastMaxId, pollData.assistantChatId); renderedIds.add(pollData.assistantChatId); }
+									}
+									
+									found = true;
+									break;
+								}
+							} catch (e) {
+								console.error(`Tentativa ${tentativas}: Erro ao fazer polling:`, e);
+							}
+						}
+
+						if (!found && !assignedToTech) {
+							console.log('Timeout atingido - nenhuma resposta encontrada, transferindo para técnico');
+							await transferToTechnicianOnce('timeout');
+						}
+					}
+					} else {
+						console.log('Resposta direta do servidor (sem polling necessário)');
+						const msg = (data && (data.reply || data.message || data.text)) || 'Sem resposta';
+						appendMessage('assistant', msg);
 					}
 				} catch (err) {
-					appendMessage('bot', 'Erro ao enviar mensagem. Verifique a conexão.');
-					console.error(err);
+					console.error('Erro ao enviar mensagem:', err);
+					appendMessage('assistant', 'Erro ao enviar mensagem. Tente novamente.');
 				} finally {
 					sending = false;
 					sendIcon.removeAttribute('disabled');
@@ -226,6 +387,45 @@
 			sendIcon.addEventListener('click', sendMessage);
 
 			inputEl.focus();
+
+			// Auto refresh: busca novas mensagens e adiciona apenas as com id maior
+			async function refreshLoop(){
+				if (!chamadoId) return;
+				try {
+					const res = await fetch(`/Chat/History/${chamadoId}`);
+					if (!res.ok) return;
+					const data = await res.json();
+					if (data && data.success && Array.isArray(data.messages)){
+						data.messages.forEach(m => {
+							const id = m.Id ?? m.id; if (!id) return; if (id <= lastMaxId) return; appendFromServer(m);
+						});
+					}
+				} catch {}
+			}
+			const intervalId = setInterval(refreshLoop, 2000);
+			// status polling: finalizado/cancelado
+			async function statusLoop(){
+				if (!chamadoId) return;
+				try{
+					const r = await fetch(`/Chamados/Status/${chamadoId}`);
+					if(!r.ok) return; const d = await r.json();
+					if (d && d.success && typeof d.status === 'string'){
+						const status = d.status;
+						if (status === 'Finalizado'){
+							clearInterval(intervalId); clearInterval(statusTimer);
+							window.location.href = `/Chamados/ChamadoFinalizado/${chamadoId}`;
+							return;
+						}
+						if (status === 'Cancelado'){
+							clearInterval(intervalId); clearInterval(statusTimer);
+							window.location.href = '/Home/Index';
+							return;
+						}
+					}
+				}catch{}
+			}
+			const statusTimer = setInterval(statusLoop, 2000);
+			window.addEventListener('beforeunload', ()=> { clearInterval(intervalId); clearInterval(statusTimer); });
 		});
 	</script>
 }
