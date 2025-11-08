@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using System;
 using System.Threading.Tasks;
-using Microsoft.Net.Http.Headers;
+using OfficeOpenXml;
 
 namespace HelpFast_Pim
 {
@@ -18,12 +18,14 @@ namespace HelpFast_Pim
         {
             var builder = WebApplication.CreateBuilder(args);
 
+            // Configurar EPPlus License
+            ExcelPackage.LicenseContext = LicenseContext.NonCommercial;
+
             // Configuration and services
             builder.Services.AddControllersWithViews();
             builder.Services.AddHttpClient();
 
-            // register DbContext (uses DefaultConnection from appsettings.json)
-            // Use InMemory database during Development to avoid hard-failing when Azure SQL is unreachable locally.
+            // register DbContext
             if (builder.Environment.IsDevelopment())
             {
                 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -32,7 +34,6 @@ namespace HelpFast_Pim
             else
             {
                 var defaultConn = builder.Configuration.GetConnectionString("DefaultConnection");
-                // Adicionado EnableRetryOnFailure e CommandTimeout para resiliência contra falhas transitórias do Azure SQL
                 builder.Services.AddDbContext<AppDbContext>(options =>
                     options.UseSqlServer(
                         defaultConn,
@@ -46,10 +47,8 @@ namespace HelpFast_Pim
                         }));
             }
 
-            // registrar serviço de usuário (garante que o tipo seja encontrado)
+            // register services
             builder.Services.AddScoped<IUsuarioService, UsuarioService>();
-
-            // registrar serviços de chat e resultados da IA
             builder.Services.AddScoped<IChatService, ChatService>();
             builder.Services.AddScoped<IChatIaResultService, ChatIaResultService>();
 
@@ -76,7 +75,7 @@ namespace HelpFast_Pim
             }
             app.UseStaticFiles();
 
-            // Middleware para desabilitar cache HTTP em todas as requisições
+            // Cache middleware
             app.Use(async (context, next) =>
             {
                 context.Response.Headers["Cache-Control"] = "no-cache, no-store, must-revalidate";
@@ -90,7 +89,7 @@ namespace HelpFast_Pim
             app.UseAuthentication();
             app.UseAuthorization();
 
-            // rota padrão alterada para abrir a tela de login por padrão
+            // Default route
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Account}/{action=Login}/{id?}");

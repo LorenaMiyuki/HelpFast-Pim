@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HelpFast_Pim.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20251102062121_inital")]
-    partial class inital
+    [Migration("20251108031829_Initial")]
+    partial class Initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -76,9 +76,20 @@ namespace HelpFast_Pim.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("ClienteId");
+                    b.HasIndex("ClienteId")
+                        .HasDatabaseName("IX_Chamados_ClienteId");
 
-                    b.HasIndex("TecnicoId");
+                    b.HasIndex("Status")
+                        .HasDatabaseName("IX_Chamados_Status");
+
+                    b.HasIndex("TecnicoId")
+                        .HasDatabaseName("IX_Chamados_TecnicoId");
+
+                    b.HasIndex("ClienteId", "Status", "DataAbertura")
+                        .HasDatabaseName("IX_Chamados_Cliente_Status_Data");
+
+                    b.HasIndex("TecnicoId", "Status", "DataAbertura")
+                        .HasDatabaseName("IX_Chamados_Tecnico_Status_Data");
 
                     b.ToTable("Chamados", "dbo");
                 });
@@ -102,19 +113,24 @@ namespace HelpFast_Pim.Migrations
 
                     b.Property<string>("Mensagem")
                         .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<int>("RemetenteId")
                         .HasColumnType("int");
 
-                    b.HasKey("Id");
+                    b.Property<string>("Tipo")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
-                    b.HasIndex("ChamadoId");
+                    b.HasKey("Id");
 
                     b.HasIndex("DestinatarioId");
 
                     b.HasIndex("RemetenteId");
+
+                    b.HasIndex("ChamadoId", "DataEnvio")
+                        .HasDatabaseName("IX_Chats_Chamado_DataEnvio");
 
                     b.ToTable("Chats", "dbo");
                 });
@@ -264,7 +280,7 @@ namespace HelpFast_Pim.Migrations
             modelBuilder.Entity("HelpFast_Pim.Models.Chat", b =>
                 {
                     b.HasOne("HelpFast_Pim.Models.Chamado", "Chamado")
-                        .WithMany()
+                        .WithMany("Chats")
                         .HasForeignKey("ChamadoId")
                         .OnDelete(DeleteBehavior.Cascade);
 
@@ -323,6 +339,11 @@ namespace HelpFast_Pim.Migrations
             modelBuilder.Entity("HelpFast_Pim.Models.Cargo", b =>
                 {
                     b.Navigation("Usuarios");
+                });
+
+            modelBuilder.Entity("HelpFast_Pim.Models.Chamado", b =>
+                {
+                    b.Navigation("Chats");
                 });
 #pragma warning restore 612, 618
         }

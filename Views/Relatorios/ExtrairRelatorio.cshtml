@@ -1,0 +1,43 @@
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    html, body {
+        background: #0f1b23 !important;
+    }
+    .app-root, .app-content {
+        background: #0f1b23 !important;
+    }
+</style>
+
+<div class="card" style="width:420px;margin:0 auto;margin-top:60px;">
+    <div class="card-inner" style="text-align:center;padding:36px 28px;">
+        <div class="logo-wrap" style="margin-bottom:18px;">
+            <img src="/images/logoh.png" alt="HelpFast" />
+        </div>
+
+        <h2 style="margin:8px 0 22px;font-weight:500;font-size:22px;">Extrair Relatório</h2>
+
+        @if (TempData["Erro"] != null)
+        {
+            <div style="background:#f8d7da;color:#721c24;padding:12px;border-radius:8px;margin-bottom:18px;">
+                @TempData["Erro"]
+            </div>
+        }
+
+        @if (TempData["Mensagem"] != null)
+        {
+            <div style="background:#d4edda;color:#155724;padding:12px;border-radius:8px;margin-bottom:18px;">
+                @TempData["Mensagem"]
+            </div>
+        }
+
+        <p style="color:#888;margin-bottom:28px;">Escolha o mês:</p>
+
+        <form method="post" asp-action="GerarRelatorio" style="display:flex;flex-direction:column;gap:18px;padding:12px 28px;">
+            <input type="month" name="dataSelecionada" required style="padding:12px;border-radius:8px;border:1px solid #ccc;font-size:16px;" />
+            <button type="submit" class="btn primary" style="padding:12px;border-radius:12px;width:100%;">Extrair Relatório</button>
+        </form>
+    </div>
+</div>

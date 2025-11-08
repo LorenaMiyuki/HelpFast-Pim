@@ -13,7 +13,6 @@
         background: #0f1b23 !important;
     }
     
-    /* Logout button - posicionado no canto superior direito */
     .logout-btn {
         position: fixed; top: 20px; right: 20px; background: #fff; color: #000; 
         padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; 
@@ -39,19 +38,20 @@
         <h2 style="margin:8px 0 22px;font-weight:500;font-size:22px;">Olá @nome</h2>
 
         @if (cargoId == 3) {
-            <!-- Cliente -->
+            //tela do cliente
             <div style="display:flex;flex-direction:column;gap:18px;padding:12px 28px;">
                 <a asp-controller="Chamados" asp-action="Create" class="btn primary" style="padding:12px;border-radius:12px;">Solicitar Chamado</a>
                 <a asp-controller="Chamados" asp-action="MeusChamados" class="btn secondary small" style="padding:12px;border-radius:12px;">Meus Chamados</a>
             </div>
         } else if (cargoId == 1) {
-            <!-- Administrador -->
+            //tela do admin
             <div style="display:flex;flex-direction:column;gap:18px;padding:12px 28px;">
                 <a asp-controller="Chamados" asp-action="ChamadosAdmin" class="btn secondary small" style="padding:12px;border-radius:12px;">Visualizar chamados</a>
                 <a asp-controller="Usuarios" asp-action="Gerenciar" class="btn secondary small" style="padding:12px;border-radius:12px;">Gerenciar Usuários</a>
+                <a asp-controller="Relatorios" asp-action="ExtrairRelatorio" class="btn secondary small" style="padding:12px;border-radius:12px;">Extrair Relatório</a>
             </div>
         } else {
-            <!-- Técnico (default) -->
+            //telá do tecnico
             <div style="display:flex;flex-direction:column;gap:18px;padding:12px 28px;">
                 <a href="/Chamados/ConsultarChamados" class="btn secondary small" style="padding:12px;border-radius:12px;">Consultar chamados</a>
             </div>

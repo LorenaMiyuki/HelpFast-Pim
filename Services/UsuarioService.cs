@@ -224,15 +224,18 @@ namespace HelpFast_Pim.Services
         {
             try
             {
+                // Atribuir CargoId padrão (3 = Cliente) se não estiver definido
+                if (user.CargoId == 0 || user.CargoId == null)
+                {
+                    user.CargoId = 3; // 3 = Cliente (padrão para novos registros)
+                }
+
                 if (user == null) return null;
                 if (string.IsNullOrWhiteSpace(user.Email) || string.IsNullOrWhiteSpace(senha))
                     throw new ArgumentException("Email e senha são obrigatórios.");
 
                 if (await EmailExisteAsync(user.Email))
                     throw new ArgumentException("Email já cadastrado.");
-
-                if (user.CargoId == 0)
-                    user.CargoId = await ObterCargoIdPorNomeOuFallbackAsync("Cliente");
 
                 user.Senha = HashSenha(senha);
                 _context.Usuarios.Add(user);

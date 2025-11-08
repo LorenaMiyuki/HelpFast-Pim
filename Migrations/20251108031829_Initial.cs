@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace HelpFast_Pim.Migrations
 {
     /// <inheritdoc />
-    public partial class inital : Migration
+    public partial class Initial : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -112,8 +112,9 @@ namespace HelpFast_Pim.Migrations
                     ChamadoId = table.Column<int>(type: "int", nullable: true),
                     RemetenteId = table.Column<int>(type: "int", nullable: false),
                     DestinatarioId = table.Column<int>(type: "int", nullable: false),
-                    Mensagem = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    DataEnvio = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    Mensagem = table.Column<string>(type: "nvarchar(max)", maxLength: 4000, nullable: false),
+                    DataEnvio = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Tipo = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true)
                 },
                 constraints: table =>
                 {
@@ -196,10 +197,28 @@ namespace HelpFast_Pim.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Chamados_Cliente_Status_Data",
+                schema: "dbo",
+                table: "Chamados",
+                columns: new[] { "ClienteId", "Status", "DataAbertura" });
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Chamados_ClienteId",
                 schema: "dbo",
                 table: "Chamados",
                 column: "ClienteId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Chamados_Status",
+                schema: "dbo",
+                table: "Chamados",
+                column: "Status");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Chamados_Tecnico_Status_Data",
+                schema: "dbo",
+                table: "Chamados",
+                columns: new[] { "TecnicoId", "Status", "DataAbertura" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Chamados_TecnicoId",
@@ -214,10 +233,10 @@ namespace HelpFast_Pim.Migrations
                 column: "ChatId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_Chats_ChamadoId",
+                name: "IX_Chats_Chamado_DataEnvio",
                 schema: "dbo",
                 table: "Chats",
-                column: "ChamadoId");
+                columns: new[] { "ChamadoId", "DataEnvio" });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Chats_DestinatarioId",

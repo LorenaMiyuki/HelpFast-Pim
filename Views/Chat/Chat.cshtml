@@ -4,7 +4,6 @@
 	ViewData["Title"] = "Chat";
 }
 <style>
-	/* estilo ajustado para ficar similar ao protótipo */
 	.chat-page { display:flex; flex-direction:column; align-items:center; padding:40px 0; background:transparent; }
 	.chat-card {
 		background:#13202a; border-radius:18px; padding:28px; width:760px; color:#fff; box-shadow:0 10px 0 rgba(0,0,0,0.4);
@@ -22,7 +21,6 @@
 		flex:1; overflow-y:auto; padding:8px; display:flex; flex-direction:column; gap:12px;
 		word-wrap:break-word; white-space:pre-wrap; position:relative; z-index:2;
 	}
-	/* linha com data/hora acima e bolha abaixo */
 	.msg-row { display:flex; flex-direction:column; gap:4px; }
 	.msg-row.left { align-items:flex-start; }
 	.msg-row.right { align-items:flex-end; }
@@ -62,12 +60,10 @@
 </style>
 
 <div class="chat-page">
-	<!-- Logo maior fora do card -->
 	<div style="text-align:center; margin-bottom:14px;">
 		<img src="/images/logoh.png" alt="HelpFast" style="height:96px; width:auto;" />
 	</div>
 	<div class="chat-card">
-		<!-- Cabeçalho com ID à esquerda e Motivo à direita -->
 		<div class="header" style="justify-content:space-between;">
 			<div class="meta" style="display:flex; gap:18px; align-items:center;">
 				<div><strong>ID Chamado:</strong> <span>@ViewBag.ChamadoId</span></div>
@@ -75,12 +71,10 @@
 			<div class="meta" style="text-align:right;"><strong>Motivo:</strong> <span>@ViewBag.Motivo</span></div>
 		</div>
  
- 		<!-- root com dados do chamado disponíveis para o JS -->
 		<div class="chat-inner" id="chat-root"
 		     data-chamado-id="@((ViewBag.ChamadoNumericId ?? ""))"
 		     data-motivo="@((ViewBag.Motivo ?? ""))">
 			<div class="messages" id="messages" aria-live="polite" aria-atomic="false">
-				<!-- mensagem inicial: usa resposta retornada pelo controller (ViewBag.InitialBotMessage) quando disponível -->
 				@if (!string.IsNullOrEmpty((string?)ViewBag.InitialBotMessage))
 				{
 					<div class="msg-row left">
@@ -132,11 +126,11 @@
 			const chamadoId = root.dataset.chamadoId || null;
 			const motivo = root.dataset.motivo || '';
 			let hasTechnician = false;
-			let assignedToTech = false; // evita chamadas/avisos duplicados de transferência
+			let assignedToTech = false;
 			let lastMaxId = 0;
 			const renderedIds = new Set();
-			let assistantResponseCount = 0; // Contador de respostas do assistente
-			const MAX_ASSISTANT_RESPONSES = 3; // Limite de respostas antes de transferir
+			let assistantResponseCount = 0;
+			const MAX_ASSISTANT_RESPONSES = 3;
 
 			function formatTime(date = new Date()){
 				const d = date;
@@ -162,7 +156,6 @@
 				row.appendChild(bubble);
 				messagesEl.appendChild(row);
 				
-				// Scroll suave para o final
 				setTimeout(() => {
 					messagesEl.scrollTop = messagesEl.scrollHeight;
 				}, 0);
@@ -200,7 +193,6 @@
 				setTimeout(() => { messagesEl.scrollTop = messagesEl.scrollHeight; }, 0);
 			}
 
-			// Carregar histórico ao abrir a página (somente ao carregar, não depois)
 			async function loadHistory() {
 				if (!chamadoId || chamadoId === '') {
 					console.log('Sem chamadoId, pulando carregamento de histórico');
@@ -220,20 +212,16 @@
 					
 					if (data.success && data.messages && data.messages.length > 0) {
 						console.log('Carregando histórico, total de mensagens:', data.messages.length);
-						// Limpar TODAS as mensagens (incluindo a padrão "Olá...")
+						// Limpar TODAS as mensagens
 						messagesEl.innerHTML = '';
 						
-						// Recarregar com histórico
 						data.messages.forEach(msg => appendFromServer(msg));
 
-						// Verificar se já tem técnico pelo histórico (se houver tipo explícito)
 						hasTechnician = data.messages.some(m => (m.Tipo ?? m.tipo) === 'Tecnico');
 						if (hasTechnician) assignedToTech = true;
-						// Inicializar lastMaxId
 						const maxIdNow = Math.max.apply(null, data.messages.map(m => m.Id ?? m.id));
 						if (Number.isFinite(maxIdNow)) lastMaxId = maxIdNow;
 						
-						// Scroll para o final
 						setTimeout(() => {
 							messagesEl.scrollTop = messagesEl.scrollHeight;
 						}, 100);
@@ -249,7 +237,6 @@
 			let historyLoaded = false;
 			let initialMessageShown = true;
 
-			// Carregar histórico uma única vez ao inicializar
 			await loadHistory();
 			historyLoaded = true;
 			console.log('Histórico carregado, historyLoaded =', historyLoaded);
@@ -279,7 +266,6 @@
 					const data = await res.json();
 					console.log('Resposta do servidor:', data);
 
-					// Se tem técnico atribuído, não precisa fazer polling
 					if (data && data.hasTechnician) {
 						console.log('Chamado tem técnico atribuído. Mensagem salva e será vista pelo técnico. Parando conversa com assistente.');
 						hasTechnician = true;
@@ -293,19 +279,17 @@
 						return;
 					}
 
-					// Se o servidor respondeu com processing:true, iniciar polling
 					if (data && data.processing && data.chatId) {
 						console.log('Iniciando polling para chatId:', data.chatId);
 						lastMaxId = Math.max(lastMaxId, data.chatId); 
 						renderedIds.add(data.chatId);
 						
 						const startTime = Date.now();
-						const timeout = 150000; // 150s
+						const timeout = 150000;
 						let found = false;
 						let tentativas = 0;
 						let isPolling = true;
 
-						// helper: atribui técnico e envia mensagem apenas uma vez
 						async function transferToTechnicianOnce(motivoTransferencia){
 							if (assignedToTech) return;
 							appendMessage('assistant', 'Estamos te transferindo para um Técnico, aguarde um momento.');
@@ -335,17 +319,14 @@
 								if (pollData && pollData.found && pollData.message && pollData.message.trim() !== '') {
 									console.log('Resposta encontrada!', pollData.message);
 									
-									// Verificar se é "sem resposta"
 									const msgLower = pollData.message.toLowerCase();
 									if (msgLower.includes('sem resposta') || msgLower.includes('não consegui') || msgLower.includes('nao consegui')) {
 										console.log('IA não conseguiu responder, transferindo para técnico...');
 										await transferToTechnicianOnce('sem-resposta');
 									} else {
-										// Incrementar contador de respostas do assistente
 										assistantResponseCount++;
 										console.log(`Resposta do assistente ${assistantResponseCount}/${MAX_ASSISTANT_RESPONSES}`);
 										
-										// Mostrar resposta normal
 										const cleanMessage = pollData.message.trim();
 										console.log('Resposta limpa do assistente:', cleanMessage);
 										appendMessage('assistant', cleanMessage);
@@ -354,7 +335,7 @@
 											renderedIds.add(pollData.assistantChatId); 
 										}
 
-										// Verificar se atingiu o limite de respostas
+										// Verifica se atingiu o limite de respostas
 										if (assistantResponseCount >= MAX_ASSISTANT_RESPONSES) {
 											console.log('Limite de respostas do assistente atingido, transferindo para técnico...');
 											await transferToTechnicianOnce('limite-respostas');
@@ -389,7 +370,6 @@
 				}
 			}
 
-			// Enter envia
 			inputEl.addEventListener('keydown', function(e){
 				if (e.key === 'Enter' && !e.shiftKey) {
 					e.preventDefault();
@@ -397,14 +377,12 @@
 				}
 			});
 
-			// clique no avião envia
 			sendIcon.addEventListener('click', sendMessage);
 
 			inputEl.focus();
 
-			// Auto refresh: busca novas mensagens e adiciona apenas as com id maior
 			async function refreshLoop(){
-				if (!chamadoId || sending) return; // Não atualiza enquanto está enviando
+				if (!chamadoId || sending) return;
 				try {
 					const res = await fetch(`/Chat/History/${chamadoId}`);
 					if (!res.ok) return;
@@ -413,7 +391,7 @@
 						data.messages.forEach(m => {
 							const id = m.Id ?? m.id; 
 							if (!id) return; 
-							if (renderedIds.has(id)) return; // Verifica se já foi renderizado
+							if (renderedIds.has(id)) return;
 							if (id <= lastMaxId) return; 
 							appendFromServer(m);
 						});
@@ -423,7 +401,6 @@
 				}
 			}
 			const intervalId = setInterval(refreshLoop, 2000);
-			// status polling: finalizado/cancelado
 			async function statusLoop(){
 				if (!chamadoId) return;
 				try{
