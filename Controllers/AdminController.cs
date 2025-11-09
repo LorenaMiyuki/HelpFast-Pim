@@ -49,7 +49,6 @@ namespace HelpFast_Pim.Controllers
                     return RedirectToAction("CriarTecnico");
                 }
 
-                // Verificar se email já existe
                 var emailExiste = await _db.Usuarios.AnyAsync(u => u.Email == email);
                 if (emailExiste)
                 {
@@ -57,17 +56,17 @@ namespace HelpFast_Pim.Controllers
                     return RedirectToAction("CriarTecnico");
                 }
 
-                // Obter cargo "Técnico"
+
                 var cargoTecnico = await _db.Cargos.FirstOrDefaultAsync(c => c.Nome == "Técnico");
                 if (cargoTecnico == null)
                 {
-                    // Criar cargo se não existir
+
                     cargoTecnico = new Cargo { Nome = "Técnico" };
                     _db.Cargos.Add(cargoTecnico);
                     await _db.SaveChangesAsync();
                 }
 
-                // Criar usuário
+
                 var usuario = new Usuario
                 {
                     Nome = nome,
@@ -127,7 +126,6 @@ namespace HelpFast_Pim.Controllers
                     return RedirectToAction("Editar", new { id });
                 }
 
-                // Verificar se email já está em uso por outro usuário
                 var emailEmUso = await _db.Usuarios.AnyAsync(u => u.Email == email && u.Id != id);
                 if (emailEmUso)
                 {

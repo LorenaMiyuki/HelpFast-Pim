@@ -53,10 +53,8 @@ namespace HelpFast_Pim.Controllers
                     return View(model);
                 }
 
-                // Atualiza último login
                 await _usuarioService.AtualizarUltimoLoginAsync(usuario.Id);
 
-                // Criar claims e autenticar via cookies
                 var claims = new[]
                 {
                     new Claim(ClaimTypes.NameIdentifier, usuario.Id.ToString()),

@@ -3,6 +3,9 @@ using HelpFast_Pim.Data;
 using HelpFast_Pim.Models;
 using HelpFast_Pim.Services;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace HelpFast_Pim.Controllers
 {
@@ -26,7 +29,7 @@ namespace HelpFast_Pim.Controllers
                 .Include(u => u.Cargo)
                 .AsNoTracking()
                 .ToListAsync();
-            
+
             return View(usuarios);
         }
 
@@ -49,7 +52,6 @@ namespace HelpFast_Pim.Controllers
                     return RedirectToAction("CriarTecnico");
                 }
 
-                // Verificar se email já existe
                 var emailExiste = await _db.Usuarios.AnyAsync(u => u.Email == email);
                 if (emailExiste)
                 {
@@ -57,14 +59,13 @@ namespace HelpFast_Pim.Controllers
                     return RedirectToAction("CriarTecnico");
                 }
 
-                // Criar usuário com CargoId = 2 (Técnico)
                 var usuario = new Usuario
                 {
                     Nome = nome,
                     Email = email,
                     Telefone = telefone,
                     Senha = Guid.NewGuid().ToString(),
-                    CargoId = 2  // ID do cargo Técnico
+                    CargoId = 2
                 };
 
                 _db.Usuarios.Add(usuario);
@@ -117,7 +118,6 @@ namespace HelpFast_Pim.Controllers
                     return RedirectToAction("Editar", new { id });
                 }
 
-                // Verificar se email já está em uso por outro usuário
                 var emailEmUso = await _db.Usuarios.AnyAsync(u => u.Email == email && u.Id != id);
                 if (emailEmUso)
                 {
@@ -143,70 +143,79 @@ namespace HelpFast_Pim.Controllers
             }
         }
 
-        // POST /Usuarios/Excluir/{id} - Exclui um usuário
-        [HttpPost("Excluir/{id}")]
-        public async Task<IActionResult> Excluir(int id)
+        // POST /Usuarios/Excluir - Exclui um usuário (recebe id via form)
+        [HttpPost("Excluir")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Excluir([FromForm] int id)
         {
             try
             {
-                var usuario = await _db.Usuarios
-                    .Include(u => u.Cargo)
-                    .FirstOrDefaultAsync(u => u.Id == id);
-                    
+                var usuario = await _db.Usuarios.FindAsync(id);
                 if (usuario == null)
                 {
-                    return NotFound();
+                    TempData["Erro"] = "Usuário não encontrado.";
+                    return RedirectToAction("Gerenciar");
                 }
 
-                // PASSO 1: Remover ChatIaResults relacionados a chats diretos
                 var iaResultsDirectos = await _db.ChatIaResults
                     .Include(r => r.Chat)
                     .Where(r => r.Chat != null && (r.Chat.RemetenteId == id || r.Chat.DestinatarioId == id))
                     .ToListAsync();
-                _db.ChatIaResults.RemoveRange(iaResultsDirectos);
-                await _db.SaveChangesAsync();
+                if (iaResultsDirectos.Any())
+                {
+                    _db.ChatIaResults.RemoveRange(iaResultsDirectos);
+                    await _db.SaveChangesAsync();
+                }
 
-                // PASSO 2: Remover chats diretos do usuário
                 var chatsDirectos = await _db.Chats
                     .Where(c => c.RemetenteId == id || c.DestinatarioId == id)
                     .ToListAsync();
-                _db.Chats.RemoveRange(chatsDirectos);
-                await _db.SaveChangesAsync();
+                if (chatsDirectos.Any())
+                {
+                    _db.Chats.RemoveRange(chatsDirectos);
+                    await _db.SaveChangesAsync();
+                }
 
-                // PASSO 3: Remover chamados do usuário
                 var chamados = await _db.Chamados
                     .Where(c => c.ClienteId == id || c.TecnicoId == id)
                     .ToListAsync();
 
                 var chamadoIds = chamados.Select(c => c.Id).ToList();
 
-                // PASSO 4: Remover ChatIaResults dos chats associados a chamados
-                var iaResultsChamados = await _db.ChatIaResults
-                    .Include(r => r.Chat)
-                    .Where(r => r.Chat != null && r.Chat.ChamadoId.HasValue && chamadoIds.Contains(r.Chat.ChamadoId.Value))
-                    .ToListAsync();
-                _db.ChatIaResults.RemoveRange(iaResultsChamados);
-                await _db.SaveChangesAsync();
+                if (chamadoIds.Any())
+                {
+                    var iaResultsChamados = await _db.ChatIaResults
+                        .Include(r => r.Chat)
+                        .Where(r => r.Chat != null && r.Chat.ChamadoId.HasValue && chamadoIds.Contains(r.Chat.ChamadoId.Value))
+                        .ToListAsync();
+                    if (iaResultsChamados.Any())
+                    {
+                        _db.ChatIaResults.RemoveRange(iaResultsChamados);
+                        await _db.SaveChangesAsync();
+                    }
 
-                // PASSO 5: Remover chats dos chamados
-                var chatsChamados = await _db.Chats
-                    .Where(c => c.ChamadoId.HasValue && chamadoIds.Contains(c.ChamadoId.Value))
-                    .ToListAsync();
-                _db.Chats.RemoveRange(chatsChamados);
-                await _db.SaveChangesAsync();
+                    var chatsChamados = await _db.Chats
+                        .Where(c => c.ChamadoId.HasValue && chamadoIds.Contains(c.ChamadoId.Value))
+                        .ToListAsync();
+                    if (chatsChamados.Any())
+                    {
+                        _db.Chats.RemoveRange(chatsChamados);
+                        await _db.SaveChangesAsync();
+                    }
 
-                // PASSO 6: Remover histórico de chamados
-                var historicos = await _db.HistoricoChamados
-                    .Where(h => chamadoIds.Contains(h.ChamadoId))
-                    .ToListAsync();
-                _db.HistoricoChamados.RemoveRange(historicos);
-                await _db.SaveChangesAsync();
+                    var historicos = await _db.HistoricoChamados
+                        .Where(h => chamadoIds.Contains(h.ChamadoId))
+                        .ToListAsync();
+                    if (historicos.Any())
+                    {
+                        _db.HistoricoChamados.RemoveRange(historicos);
+                        await _db.SaveChangesAsync();
+                    }
 
-                // PASSO 7: Remover chamados
-                _db.Chamados.RemoveRange(chamados);
-                await _db.SaveChangesAsync();
+                    _db.Chamados.RemoveRange(chamados);
+                    await _db.SaveChangesAsync();
+                }
 
-                // PASSO 8: Finalmente remover o usuário
                 _db.Usuarios.Remove(usuario);
                 await _db.SaveChangesAsync();
 
